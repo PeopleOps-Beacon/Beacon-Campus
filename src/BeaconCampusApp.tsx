@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_START_NODE_ID } from "./data/beaconUniversity";
 import {
-  activeAlerts,
   computeRoutePlan,
   destinationTargetFromSearchResult,
   getBuilding,
@@ -11,8 +10,10 @@ import {
 import { useCampusData } from "./hooks/useCampusData";
 import { useLocationPermission } from "./hooks/useLocationPermission";
 import { usePreferences } from "./hooks/usePreferences";
+import { useAnalytics } from "./hooks/useAnalytics";
+import { useNotificationRead } from "./hooks/useNotificationRead";
 import type { DestinationTarget } from "./lib/campusEngine";
-import type { Building, BuildingCategory, CampusEvent, ClassScheduleEntry, Persona, SearchResult } from "./types/campus";
+import { effectivePreferences, type Building, type BuildingCategory, type CampusEvent, type ClassScheduleEntry, type Persona, type RouteMode, type SearchResult } from "./types/campus";
 
 import { MobileAppShell } from "./components/shell/MobileAppShell";
 import type { TabId } from "./components/shell/TabNavigator";
@@ -20,6 +21,7 @@ import { Onboarding } from "./components/Onboarding";
 import { LocationPermissionPrompt } from "./components/LocationPermissionPrompt";
 import { HomeScreen, type CategoryId } from "./components/HomeScreen";
 import { DestinationCard } from "./components/DestinationCard";
+import { RouteModeScreen } from "./components/RouteModeScreen";
 import { NavigationScreen } from "./components/NavigationScreen";
 import { ArrivalScreen } from "./components/ArrivalScreen";
 import { ScheduleScreen } from "./components/ScheduleScreen";
@@ -34,11 +36,13 @@ import { CampusTourScreen } from "./components/CampusTourScreen";
 import { AccessibilityPanel } from "./components/AccessibilityPanel";
 import { QuickQuestions } from "./components/QuickQuestions";
 import { DirectoryScreen } from "./components/DirectoryScreen";
+import { HelpScreen } from "./components/HelpScreen";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { Button, Card, ErrorState, SectionHeading } from "./components/ui/Primitives";
 import {
   Accessibility as AccessibilityIcon,
   Compass,
+  HelpCircle,
   MapPinned,
   Sparkles,
   Users
@@ -50,6 +54,7 @@ type Screen =
   | "alerts"
   | "more"
   | "destination"
+  | "route-options"
   | "navigation"
   | "arrival"
   | "building"
@@ -62,6 +67,7 @@ type Screen =
   | "tour"
   | "assistant"
   | "accessibility"
+  | "help"
   | "admin";
 
 interface SessionState {
@@ -70,6 +76,7 @@ interface SessionState {
   startNodeId: string;
   activeBuildingId: string | null;
   activeDestinationTarget: DestinationTarget | null;
+  routeMode: RouteMode;
   activeEventId: string | null;
   navStepIndex: number;
   directoryFilter: { title: string; category?: BuildingCategory } | null;
@@ -84,6 +91,7 @@ const DEFAULT_SESSION: SessionState = {
   startNodeId: DEFAULT_START_NODE_ID,
   activeBuildingId: null,
   activeDestinationTarget: null,
+  routeMode: "fastest",
   activeEventId: null,
   navStepIndex: 0,
   directoryFilter: null,
@@ -137,6 +145,7 @@ export default function BeaconCampusApp() {
   const { campus, hasCustomizations, actions } = useCampusData();
   const location = useLocationPermission();
   const { preferences, togglePreference } = usePreferences();
+  const analytics = useAnalytics();
 
   const [persona, setPersona] = useState<Persona | null>(loadPersona);
   const [onboardingSeen, setOnboardingSeen] = useState<boolean>(() =>
@@ -155,31 +164,46 @@ export default function BeaconCampusApp() {
 
   const searchResults = useMemo<SearchResult[]>(() => search(campus, searchQuery), [campus, searchQuery]);
 
+  useEffect(() => {
+    if (searchQuery.trim().length >= 2) analytics.trackSearch(searchQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
+
   const activeBuilding: Building | undefined = session.activeBuildingId ? getBuilding(campus, session.activeBuildingId) : undefined;
+
+  const activeRoutePreferences = useMemo(
+    () => effectivePreferences(preferences, session.routeMode),
+    [preferences, session.routeMode]
+  );
 
   const destinationIntel = useMemo(() => {
     if (!session.activeDestinationTarget) return null;
     return getDestinationIntel(campus, session.activeDestinationTarget, {
       fromNodeId: session.startNodeId,
-      preferences,
+      preferences: activeRoutePreferences,
       now
     });
-  }, [campus, session.activeDestinationTarget, session.startNodeId, preferences, now]);
+  }, [campus, session.activeDestinationTarget, session.startNodeId, activeRoutePreferences, now]);
 
   const routePlan = useMemo(() => {
     if (!session.activeDestinationTarget) return null;
     return computeRoutePlan(campus, session.activeDestinationTarget, {
       fromNodeId: session.startNodeId,
-      preferences,
+      preferences: activeRoutePreferences,
       now
     });
-  }, [campus, session.activeDestinationTarget, session.startNodeId, preferences, now]);
+  }, [campus, session.activeDestinationTarget, session.startNodeId, activeRoutePreferences, now]);
 
   const routePathIds = routePlan?.path ?? [];
 
   const activeEvent: CampusEvent | undefined = session.activeEventId ? campus.events.find((e) => e.id === session.activeEventId) : undefined;
 
-  const alertCount = activeAlerts(campus).length;
+  const { unreadCount, markAllRead } = useNotificationRead(campus);
+
+  useEffect(() => {
+    if (session.screen === "alerts") markAllRead();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.screen]);
 
   function openBuilding(buildingId: string, screen: Screen = "building") {
     patch({ screen, activeBuildingId: buildingId });
@@ -187,7 +211,8 @@ export default function BeaconCampusApp() {
 
   function goToDestination(target: DestinationTarget) {
     setSearchQuery("");
-    patch({ screen: "destination", activeDestinationTarget: target, activeBuildingId: target.buildingId });
+    analytics.trackDestinationView(target.buildingId);
+    patch({ screen: "destination", activeDestinationTarget: target, activeBuildingId: target.buildingId, routeMode: "fastest" });
   }
 
   function handleSelectSearchResult(result: SearchResult) {
@@ -215,6 +240,10 @@ export default function BeaconCampusApp() {
   }
 
   function startRoute() {
+    patch({ screen: "route-options" });
+  }
+
+  function confirmRouteMode() {
     patch({ screen: "navigation", navStepIndex: 0 });
   }
 
@@ -264,7 +293,7 @@ export default function BeaconCampusApp() {
     );
   }
 
-  const hideTabs = (["destination", "navigation", "arrival", "admin"] as Screen[]).includes(session.screen);
+  const hideTabs = (["destination", "route-options", "navigation", "arrival", "admin"] as Screen[]).includes(session.screen);
   const showBack = session.screen !== "home" && session.screen !== "more";
 
   return (
@@ -276,7 +305,7 @@ export default function BeaconCampusApp() {
         else if (tab === "alerts") patch({ screen: "alerts", activeTab: tab });
         else patch({ screen: "more", activeTab: tab });
       }}
-      alertCount={alertCount}
+      alertCount={unreadCount}
       hideTabs={hideTabs}
       title={screenTitle(session.screen)}
       onBack={showBack ? () => patch({ screen: previousScreenFor(session.screen), activeTab: "home" }) : undefined}
@@ -340,6 +369,22 @@ export default function BeaconCampusApp() {
             onStartRoute={startRoute}
             onViewBuilding={() => openBuilding(destinationIntel.buildingId)}
             onViewParking={() => patch({ screen: "parking" })}
+          />
+        ) : (
+          <ErrorState title="Route unavailable" message="We couldn't find a route to this destination right now." />
+        ))}
+
+      {session.screen === "route-options" &&
+        (session.activeDestinationTarget ? (
+          <RouteModeScreen
+            campus={campus}
+            target={session.activeDestinationTarget}
+            startNodeId={session.startNodeId}
+            basePreferences={preferences}
+            now={now}
+            selectedMode={session.routeMode}
+            onSelectMode={(mode) => patch({ routeMode: mode })}
+            onContinue={confirmRouteMode}
           />
         ) : (
           <ErrorState title="Route unavailable" message="We couldn't find a route to this destination right now." />
@@ -419,10 +464,21 @@ export default function BeaconCampusApp() {
       {session.screen === "assistant" && <QuickQuestions campus={campus} />}
 
       {session.screen === "accessibility" && (
-        <AccessibilityPanel campus={campus} preferences={preferences} onTogglePreference={togglePreference} />
+        <AccessibilityPanel
+          campus={campus}
+          preferences={preferences}
+          onTogglePreference={(key) => {
+            togglePreference(key);
+            analytics.trackPreferenceToggle(key);
+          }}
+        />
       )}
 
-      {session.screen === "admin" && <AdminDashboard campus={campus} actions={actions} hasCustomizations={hasCustomizations} />}
+      {session.screen === "help" && <HelpScreen campus={campus} />}
+
+      {session.screen === "admin" && (
+        <AdminDashboard campus={campus} actions={actions} hasCustomizations={hasCustomizations} analytics={analytics} />
+      )}
     </MobileAppShell>
   );
 }
@@ -430,7 +486,8 @@ export default function BeaconCampusApp() {
 function previousScreenFor(screen: Screen): Screen {
   const backMap: Partial<Record<Screen, Screen>> = {
     destination: "home",
-    navigation: "destination",
+    "route-options": "destination",
+    navigation: "route-options",
     arrival: "home",
     building: "home",
     directory: "home",
@@ -442,6 +499,7 @@ function previousScreenFor(screen: Screen): Screen {
     tour: "more",
     assistant: "home",
     accessibility: "more",
+    help: "more",
     admin: "home"
   };
   return backMap[screen] ?? "home";
@@ -453,6 +511,7 @@ function screenTitle(screen: Screen): string | undefined {
     alerts: "Alerts",
     more: "More",
     destination: "Destination",
+    "route-options": "Choose Route",
     navigation: "Directions",
     arrival: "Arrival",
     parking: "Parking",
@@ -463,6 +522,7 @@ function screenTitle(screen: Screen): string | undefined {
     tour: "Campus Tour",
     assistant: "Beacon Assistant",
     accessibility: "Accessibility",
+    help: "Help",
     admin: "Admin Preview"
   };
   return titles[screen];
@@ -474,7 +534,8 @@ function MoreMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
     { screen: "orientation", label: "Orientation Mode", description: "New student welcome & first-day checklist", icon: Users },
     { screen: "tour", label: "Campus Tour", description: "Self-guided walking tour", icon: MapPinned },
     { screen: "accessibility", label: "Accessibility", description: "Step-free routing & accessible entrances", icon: AccessibilityIcon },
-    { screen: "assistant", label: "Ask Beacon", description: "Quick answers to common questions", icon: Compass }
+    { screen: "assistant", label: "Ask Beacon", description: "Quick answers to common questions", icon: Compass },
+    { screen: "help", label: "Help", description: "How to use Beacon Campus", icon: HelpCircle }
   ];
   return (
     <div className="flex flex-col gap-4">

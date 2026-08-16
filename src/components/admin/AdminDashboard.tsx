@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { AlertTriangle, Calendar, Construction, ShieldCheck, SquareParking } from "lucide-react";
+import { AlertTriangle, BarChart3, Calendar, Construction, ShieldCheck, SquareParking } from "lucide-react";
+import type { UseAnalytics } from "../../hooks/useAnalytics";
 import type { AlertSeverity, Campus, CampusAlert, CampusEvent } from "../../types/campus";
 import { Badge, Button, Card, IconTile, SectionHeading, Toggle, cx } from "../ui/Primitives";
+import { InsightsAdmin } from "./InsightsAdmin";
 
 type AdminActions = {
   toggleAlertActive: (id: string, current: boolean) => void;
@@ -15,9 +17,10 @@ type AdminActions = {
   resetOverrides: () => void;
 };
 
-type Section = "alerts" | "parking" | "hours" | "construction" | "events";
+type Section = "insights" | "alerts" | "parking" | "hours" | "construction" | "events";
 
 const SECTIONS: { id: Section; label: string; icon: typeof AlertTriangle }[] = [
+  { id: "insights", label: "Insights", icon: BarChart3 },
   { id: "alerts", label: "Alerts", icon: AlertTriangle },
   { id: "parking", label: "Parking", icon: SquareParking },
   { id: "hours", label: "Hours", icon: Calendar },
@@ -28,13 +31,15 @@ const SECTIONS: { id: Section; label: string; icon: typeof AlertTriangle }[] = [
 export function AdminDashboard({
   campus,
   actions,
-  hasCustomizations
+  hasCustomizations,
+  analytics
 }: {
   campus: Campus;
   actions: AdminActions;
   hasCustomizations: boolean;
+  analytics: UseAnalytics;
 }) {
-  const [section, setSection] = useState<Section>("alerts");
+  const [section, setSection] = useState<Section>("insights");
 
   return (
     <div className="flex flex-col gap-5">
@@ -72,6 +77,7 @@ export function AdminDashboard({
         })}
       </div>
 
+      {section === "insights" && <InsightsAdmin campus={campus} analytics={analytics} />}
       {section === "alerts" && <AlertsAdmin campus={campus} actions={actions} />}
       {section === "parking" && <ParkingAdmin campus={campus} actions={actions} />}
       {section === "hours" && <HoursAdmin campus={campus} actions={actions} />}

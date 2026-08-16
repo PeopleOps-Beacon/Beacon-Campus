@@ -36,6 +36,10 @@ export function activeAlertsForParking(campus: Campus, lotId: string): CampusAle
   return campus.alerts.filter((a) => a.active && a.affectedParkingIds?.includes(lotId));
 }
 
+export function activeConstructionForBuilding(campus: Campus, buildingId: string) {
+  return campus.construction.filter((c) => c.active && c.affectedBuildingIds.includes(buildingId));
+}
+
 export function buildingOpenStatus(building: Building, now: Date = new Date()): { isOpen: boolean; label: string } {
   const isOpen = isWithinHours(building.hours.opens, building.hours.closes, now);
   if (building.hours.opens === "00:00" && building.hours.closes === "23:59") {

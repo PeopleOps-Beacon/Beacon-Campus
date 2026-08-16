@@ -1,6 +1,7 @@
-import { AlertTriangle, Building2, DoorOpen, Navigation, SquareParking, Users } from "lucide-react";
-import { activeAlertsForBuilding, buildingOpenStatus } from "../lib/campusEngine";
+import { AlertTriangle, Building2, Construction, DoorOpen, Navigation, SquareParking, Users } from "lucide-react";
+import { activeAlertsForBuilding, activeConstructionForBuilding, buildingOpenStatus } from "../lib/campusEngine";
 import type { Building, Campus } from "../types/campus";
+import { BuildingIllustration } from "./BuildingIllustration";
 import { Badge, Button, Card, IconTile, SectionHeading } from "./ui/Primitives";
 
 const AMENITY_LABEL: Record<string, string> = {
@@ -32,18 +33,14 @@ export function BuildingDetailScreen({
 }) {
   const openStatus = buildingOpenStatus(building, now);
   const alerts = activeAlertsForBuilding(campus, building.id);
-  const toneGradient: Record<Building["photoTone"], string> = {
-    stone: "from-[#3a3a35] to-[#191916]",
-    brick: "from-[#4a2e28] to-[#241612]",
-    glass: "from-[#233245] to-[#0e161f]",
-    green: "from-[#274a30] to-[#102014]"
-  };
+  const construction = activeConstructionForBuilding(campus, building.id);
 
   return (
     <div className="flex flex-col gap-5">
-      <div className={`flex h-32 items-end rounded-[var(--radius-card)] bg-gradient-to-br p-4 ${toneGradient[building.photoTone]}`}>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-white/60">{building.abbreviation}</p>
+      <div className="relative overflow-hidden rounded-[var(--radius-card)]">
+        <BuildingIllustration category={building.category} height={160} className="w-full" />
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-white/70">{building.abbreviation}</p>
           <h1 className="text-xl font-bold text-white">{building.name}</h1>
         </div>
       </div>
@@ -64,6 +61,22 @@ export function BuildingDetailScreen({
                 <AlertTriangle size={16} aria-hidden="true" />
               </IconTile>
               <p className="text-sm text-white/80">{alert.message}</p>
+            </div>
+          ))}
+        </Card>
+      )}
+
+      {construction.length > 0 && (
+        <Card className="flex flex-col gap-2">
+          {construction.map((notice) => (
+            <div key={notice.id} className="flex items-start gap-3">
+              <IconTile>
+                <Construction size={16} aria-hidden="true" />
+              </IconTile>
+              <div>
+                <p className="text-sm font-medium text-white">{notice.title}</p>
+                <p className="mt-0.5 text-sm text-white/65">{notice.description}</p>
+              </div>
             </div>
           ))}
         </Card>

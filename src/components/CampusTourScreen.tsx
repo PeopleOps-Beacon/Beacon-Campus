@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Campus } from "../types/campus";
+import { BuildingIllustration } from "./BuildingIllustration";
 import { CampusMap } from "./CampusMap";
 import { Badge, Button, Card } from "./ui/Primitives";
 
@@ -17,6 +18,8 @@ export function CampusTourScreen({ campus, onNavigateToBuilding }: { campus: Cam
           Stop {index + 1} of {stops.length}
         </h1>
       </div>
+
+      {building && <BuildingIllustration category={building.category} height={130} className="w-full rounded-[var(--radius-card)]" />}
 
       <CampusMap campus={campus} highlightBuildingId={stop.buildingId} pinPoint={stop.buildingId ? undefined : stop.point} height={190} />
 

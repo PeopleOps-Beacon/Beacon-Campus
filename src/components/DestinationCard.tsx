@@ -1,5 +1,7 @@
-import { Accessibility, AlertTriangle, Building2, DoorOpen, Navigation, SquareParking } from "lucide-react";
+import { Accessibility, AlertTriangle, Building2, Construction, DoorOpen, Navigation, SquareParking } from "lucide-react";
+import { activeConstructionForBuilding } from "../lib/campusEngine";
 import type { DestinationIntel } from "../types/campus";
+import { BuildingIllustration } from "./BuildingIllustration";
 import { CampusMap } from "./CampusMap";
 import { Badge, Button, Card, IconTile, SectionHeading } from "./ui/Primitives";
 import type { Campus } from "../types/campus";
@@ -20,9 +22,11 @@ export function DestinationCard({
   onViewParking: () => void;
 }) {
   const { building, recommendedEntrance, walkMinutes, openStatus, roomNumber, floor, activeAlerts, entranceSubstituted, recommendedParking, parkingWalkMinutes, accessibilityNote } = intel;
+  const construction = activeConstructionForBuilding(campus, building.id);
 
   return (
     <div className="flex flex-col gap-5">
+      <BuildingIllustration category={building.category} height={130} className="w-full rounded-[var(--radius-card)]" />
       <CampusMap campus={campus} highlightBuildingId={building.id} startNodeId={startNodeId} height={180} />
 
       <div>
@@ -51,6 +55,21 @@ export function DestinationCard({
             {activeAlerts.map((alert) => (
               <p key={alert.id} className="text-sm text-white/80">
                 {alert.message}
+              </p>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {construction.length > 0 && (
+        <Card className="flex items-start gap-3">
+          <IconTile>
+            <Construction size={16} aria-hidden="true" />
+          </IconTile>
+          <div className="min-w-0">
+            {construction.map((notice) => (
+              <p key={notice.id} className="text-sm text-white/70">
+                {notice.description}
               </p>
             ))}
           </div>

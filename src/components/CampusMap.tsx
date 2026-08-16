@@ -33,6 +33,11 @@ export function CampusMap({
   const routePoints = (routePath ?? []).map(pointFor).filter((p): p is { x: number; y: number } => Boolean(p));
   const startPoint = startNodeId ? pointFor(startNodeId) : undefined;
 
+  const issueBuildingIds = new Set([
+    ...campus.alerts.filter((a) => a.active).flatMap((a) => a.affectedBuildingIds),
+    ...campus.construction.filter((c) => c.active).flatMap((c) => c.affectedBuildingIds)
+  ]);
+
   return (
     <svg
       viewBox="0 0 1000 700"
@@ -124,6 +129,9 @@ export function CampusMap({
             >
               {b.abbreviation}
             </text>
+            {issueBuildingIds.has(b.id) && (
+              <circle cx={13} cy={-9} r={5} fill="#f87171" stroke="#080a0d" strokeWidth={1.5} />
+            )}
           </g>
         );
       })}

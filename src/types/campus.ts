@@ -329,6 +329,34 @@ export interface CampusPreferences {
   reassurance: boolean;
 }
 
+/**
+ * Quick route-strategy presets shown before starting navigation — mirrors
+ * Beacon Airport's route comparison cards. Fastest/Calm/Mobility override
+ * just the routing-strategy preferences (stepFree/avoidCrowds/calmRoute/
+ * restroomStop) for this trip only; Custom uses whatever is saved on the
+ * Accessibility & Preferences screen, comfort preferences included.
+ */
+export type RouteMode = "fastest" | "calm" | "mobility" | "custom";
+
+export const ROUTE_MODE_META: Record<RouteMode, { label: string; description: string }> = {
+  fastest: { label: "Fastest", description: "The shortest path available, no detours." },
+  calm: { label: "Calm", description: "Favors quieter, less crowded walkways." },
+  mobility: { label: "Mobility", description: "Always step-free — ramps, elevators, accessible entrances." },
+  custom: { label: "Custom", description: "Uses your saved Accessibility & Preferences." }
+};
+
+export const ROUTE_MODE_OVERRIDES: Record<RouteMode, Partial<CampusPreferences> | null> = {
+  fastest: { stepFree: false, avoidCrowds: false, calmRoute: false, restroomStop: false },
+  calm: { stepFree: false, avoidCrowds: true, calmRoute: true },
+  mobility: { stepFree: true },
+  custom: null
+};
+
+export function effectivePreferences(base: CampusPreferences, mode: RouteMode): CampusPreferences {
+  const overrides = ROUTE_MODE_OVERRIDES[mode];
+  return overrides ? { ...base, ...overrides } : base;
+}
+
 export const DEFAULT_PREFERENCES: CampusPreferences = {
   stepFree: false,
   avoidCrowds: false,
