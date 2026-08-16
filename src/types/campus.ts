@@ -129,6 +129,12 @@ export interface WalkingPathEdge {
   minutes: number;
   accessible: boolean;
   outdoor: boolean;
+  /** 1 (quiet) - 5 (very crowded). Only set on edges where it meaningfully varies. */
+  crowdLevel?: number;
+  /** 1 (quiet) - 5 (very loud). Only set on edges where it meaningfully varies. */
+  noiseLevel?: number;
+  /** Flags a calm, low-stimulation stretch (e.g. a garden path) for the calmRoute preference. */
+  lowStimulation?: boolean;
 }
 
 export type AlertSeverity = "info" | "advisory" | "warning";
@@ -294,7 +300,46 @@ export interface DestinationIntel {
   activeAlerts: CampusAlert[];
 }
 
-export type StepCategory = "direction" | "landmark" | "accessibility" | "advisory" | "arrival";
+export type StepCategory = "direction" | "landmark" | "accessibility" | "advisory" | "arrival" | "reassurance";
+
+/**
+ * Real, functional routing/behavior preferences — mirrors Beacon Airport's
+ * traveler-preference system, adapted for campus. Each one measurably changes
+ * pathfinding weight, route composition, copy, or app behavior; see
+ * campusEngine.ts and NavigationScreen for where each is consumed.
+ */
+export interface CampusPreferences {
+  /** Hard filter: only accessible edges/entrances. */
+  stepFree: boolean;
+  /** Soft weighting: penalizes high-crowdLevel edges. */
+  avoidCrowds: boolean;
+  /** Soft weighting: penalizes high-noiseLevel edges, rewards lowStimulation ones. */
+  calmRoute: boolean;
+  /** Hard waypoint: routes through the nearest restroom-equipped building en route. */
+  restroomStop: boolean;
+  /** Multiplies displayed walk time by 1.25 and relaxes "leave by" messaging. */
+  extraTime: boolean;
+  /** Global font-size increase, app-wide. */
+  largerText: boolean;
+  /** Speaks the current guidance step aloud via the Web Speech API. */
+  audioGuidance: boolean;
+  /** Shorter, one-action-at-a-time phrasing for guidance and arrival text. */
+  simplifiedDirections: boolean;
+  /** Adds a rotating, calm reassurance line to each guidance step. */
+  reassurance: boolean;
+}
+
+export const DEFAULT_PREFERENCES: CampusPreferences = {
+  stepFree: false,
+  avoidCrowds: false,
+  calmRoute: false,
+  restroomStop: false,
+  extraTime: false,
+  largerText: false,
+  audioGuidance: false,
+  simplifiedDirections: false,
+  reassurance: false
+};
 
 export interface GuidanceStep {
   id: string;
@@ -309,4 +354,7 @@ export interface RoutePlan {
   steps: GuidanceStep[];
   totalMinutes: number;
   startLabel: string;
+  waypoint?: { building: Building; note: string };
+  /** Resolved walking-graph node path, including any waypoint detour — for map rendering. */
+  path: string[];
 }

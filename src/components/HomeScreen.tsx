@@ -12,8 +12,9 @@ import {
   UtensilsCrossed
 } from "lucide-react";
 import { JORDAN_SCHEDULE } from "../data/beaconUniversity";
+import { useComboboxNavigation } from "../hooks/useComboboxNavigation";
 import { activeAlerts, getDestinationIntel, upcomingEvents } from "../lib/campusEngine";
-import type { Campus, ClassScheduleEntry, Persona, SearchResult } from "../types/campus";
+import type { Campus, CampusPreferences, ClassScheduleEntry, Persona, SearchResult } from "../types/campus";
 import { formatClockTime, getLeaveByInfo } from "../utils/time";
 import { CampusMap } from "./CampusMap";
 import { SearchBar } from "./SearchBar";
@@ -70,6 +71,7 @@ export function HomeScreen({
   persona,
   now,
   startNodeId,
+  preferences,
   searchQuery,
   onSearchQueryChange,
   searchResults,
@@ -84,6 +86,7 @@ export function HomeScreen({
   persona: Persona | null;
   now: Date;
   startNodeId: string;
+  preferences: CampusPreferences;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
   searchResults: SearchResult[];
@@ -98,6 +101,7 @@ export function HomeScreen({
   const events = upcomingEvents(campus, now, 3);
   const upNext = nextClass(now);
   const showSchedule = persona ? STUDENT_PERSONAS.includes(persona) : true;
+  const combobox = useComboboxNavigation(searchResults, onSelectSearchResult);
 
   return (
     <div className="flex flex-col gap-6">
@@ -106,14 +110,34 @@ export function HomeScreen({
         <h1 className="text-[var(--font-display)] font-bold text-white">Where do you need to go?</h1>
       </div>
 
-      <SearchBar value={searchQuery} onChange={onSearchQueryChange} />
+      <SearchBar
+        value={searchQuery}
+        onChange={onSearchQueryChange}
+        listboxId="home-search-results"
+        expanded={searchQuery.trim().length > 0}
+        activeDescendant={combobox.activeId}
+        onKeyDown={combobox.onKeyDown}
+      />
 
       {searchQuery.trim() ? (
-        <SearchResultsList results={searchResults} query={searchQuery} onSelect={onSelectSearchResult} />
+        <SearchResultsList
+          results={searchResults}
+          query={searchQuery}
+          onSelect={onSelectSearchResult}
+          listboxId="home-search-results"
+          activeId={combobox.activeId}
+        />
       ) : (
         <>
           {showSchedule && upNext && (
-            <NextClassCard campus={campus} entry={upNext} now={now} startNodeId={startNodeId} onNavigate={() => onStartClassNav(upNext)} />
+            <NextClassCard
+              campus={campus}
+              entry={upNext}
+              now={now}
+              startNodeId={startNodeId}
+              preferences={preferences}
+              onNavigate={() => onStartClassNav(upNext)}
+            />
           )}
 
           {alerts.length > 0 && (
@@ -191,17 +215,19 @@ function NextClassCard({
   entry,
   now,
   startNodeId,
+  preferences,
   onNavigate
 }: {
   campus: Campus;
   entry: ClassScheduleEntry;
   now: Date;
   startNodeId: string;
+  preferences: CampusPreferences;
   onNavigate: () => void;
 }) {
   const building = campus.buildings.find((b) => b.id === entry.buildingId);
   if (!building) return null;
-  const intel = getDestinationIntel(campus, { buildingId: entry.buildingId, roomNumber: entry.roomNumber }, { fromNodeId: startNodeId, now });
+  const intel = getDestinationIntel(campus, { buildingId: entry.buildingId, roomNumber: entry.roomNumber }, { fromNodeId: startNodeId, preferences, now });
   const walkMinutes = intel?.walkMinutes ?? 0;
   const leaveBy = getLeaveByInfo(entry.time, walkMinutes, now);
 

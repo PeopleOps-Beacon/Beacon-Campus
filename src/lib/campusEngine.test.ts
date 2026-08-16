@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BEACON_UNIVERSITY } from "../data/beaconUniversity";
+import { DEFAULT_PREFERENCES } from "../types/campus";
 import {
   computeRoutePlan,
   findShortestPath,
@@ -27,6 +28,19 @@ describe("findShortestPath", () => {
     const accessible = findShortestPath(BEACON_UNIVERSITY, "north-quad", "fine-arts", { preferStepFree: true });
     expect(fast!.minutes).toBe(2);
     expect(accessible!.minutes).toBe(4);
+  });
+
+  it("routes through the calmer Reflection Garden when calmRoute is preferred", () => {
+    const direct = findShortestPath(BEACON_UNIVERSITY, "green", "union-plaza");
+    const calm = findShortestPath(BEACON_UNIVERSITY, "green", "union-plaza", { calmRoute: true });
+    expect(direct!.minutes).toBe(2);
+    expect(calm!.path).toContain("garden-walk");
+    expect(calm!.minutes).toBe(4);
+  });
+
+  it("also avoids the busy plaza when avoidCrowds is preferred", () => {
+    const crowdAware = findShortestPath(BEACON_UNIVERSITY, "green", "union-plaza", { avoidCrowds: true });
+    expect(crowdAware!.path).toContain("garden-walk");
   });
 });
 
@@ -84,6 +98,54 @@ describe("getDestinationIntel / computeRoutePlan", () => {
     expect(categories).toContain("landmark");
     expect(categories).toContain("arrival");
     expect(plan!.steps[plan!.steps.length - 1].instruction).toMatch(/Room 204/);
+  });
+
+  it("stretches the walk estimate by 25% when extraTime is preferred", () => {
+    const base = getDestinationIntel(
+      BEACON_UNIVERSITY,
+      { buildingId: "richardson", roomNumber: "204" },
+      { fromNodeId: "green", preferences: DEFAULT_PREFERENCES }
+    );
+    const relaxed = getDestinationIntel(
+      BEACON_UNIVERSITY,
+      { buildingId: "richardson", roomNumber: "204" },
+      { fromNodeId: "green", preferences: { ...DEFAULT_PREFERENCES, extraTime: true } }
+    );
+    expect(base!.walkMinutes).toBe(10);
+    expect(relaxed!.walkMinutes).toBe(12); // Math.round(8 * 1.25) + the 2-minute entrance adjustment
+  });
+
+  it("routes through a nearby restroom-equipped building when restroomStop is preferred", () => {
+    const plan = computeRoutePlan(
+      BEACON_UNIVERSITY,
+      { buildingId: "stadium" },
+      { fromNodeId: "green", preferences: { ...DEFAULT_PREFERENCES, restroomStop: true } }
+    );
+    expect(plan).not.toBeNull();
+    expect(plan!.waypoint).toBeDefined();
+    expect(plan!.path).toContain(plan!.waypoint!.building.id);
+    expect(plan!.steps.some((s) => s.category === "accessibility" && s.instruction.toLowerCase().includes("restroom"))).toBe(true);
+  });
+
+  it("uses shorter phrasing when simplifiedDirections is preferred", () => {
+    const normal = computeRoutePlan(BEACON_UNIVERSITY, { buildingId: "richardson", roomNumber: "204" }, { fromNodeId: "green" });
+    const simplified = computeRoutePlan(
+      BEACON_UNIVERSITY,
+      { buildingId: "richardson", roomNumber: "204" },
+      { fromNodeId: "green", preferences: { ...DEFAULT_PREFERENCES, simplifiedDirections: true } }
+    );
+    const normalArrival = normal!.steps[normal!.steps.length - 1].instruction;
+    const simpleArrival = simplified!.steps[simplified!.steps.length - 1].instruction;
+    expect(simpleArrival.length).toBeLessThan(normalArrival.length);
+  });
+
+  it("adds a reassurance step when reassurance is preferred", () => {
+    const plan = computeRoutePlan(
+      BEACON_UNIVERSITY,
+      { buildingId: "richardson", roomNumber: "204" },
+      { fromNodeId: "green", preferences: { ...DEFAULT_PREFERENCES, reassurance: true } }
+    );
+    expect(plan!.steps.some((s) => s.category === "reassurance")).toBe(true);
   });
 });
 

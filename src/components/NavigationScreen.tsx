@@ -1,4 +1,6 @@
-import { AlertTriangle, Compass, DoorOpen, MapPin, MapPinned } from "lucide-react";
+import { useEffect } from "react";
+import { AlertTriangle, Compass, DoorOpen, Heart, MapPin, MapPinned } from "lucide-react";
+import { speak } from "../lib/speech";
 import type { Campus, RoutePlan, StepCategory } from "../types/campus";
 import { CampusMap } from "./CampusMap";
 import { Button, Card, cx } from "./ui/Primitives";
@@ -8,7 +10,8 @@ const CATEGORY_ICON: Record<StepCategory, typeof Compass> = {
   landmark: MapPinned,
   accessibility: MapPin,
   advisory: AlertTriangle,
-  arrival: MapPin
+  arrival: MapPin,
+  reassurance: Heart
 };
 
 export function NavigationScreen({
@@ -17,6 +20,7 @@ export function NavigationScreen({
   stepIndex,
   routePath,
   startNodeId,
+  audioGuidance,
   onNextStep,
   onPrevStep,
   onArrive
@@ -26,6 +30,7 @@ export function NavigationScreen({
   stepIndex: number;
   routePath: string[];
   startNodeId: string;
+  audioGuidance: boolean;
   onNextStep: () => void;
   onPrevStep: () => void;
   onArrive: () => void;
@@ -34,6 +39,10 @@ export function NavigationScreen({
   const current = steps[stepIndex];
   const isLastStep = stepIndex === steps.length - 1;
   const remainingMinutes = Math.max(0, plan.totalMinutes - (current?.minutesFromStart ?? 0));
+
+  useEffect(() => {
+    if (audioGuidance && current) speak(current.instruction);
+  }, [audioGuidance, current]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -63,7 +72,9 @@ export function NavigationScreen({
               </div>
             );
           })()}
-          <p className="text-lg font-medium leading-snug text-white">{current.instruction}</p>
+          <p className="text-lg font-medium leading-snug text-white" aria-live="polite" aria-atomic="true">
+            {current.instruction}
+          </p>
         </Card>
       )}
 

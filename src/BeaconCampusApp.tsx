@@ -4,13 +4,13 @@ import {
   activeAlerts,
   computeRoutePlan,
   destinationTargetFromSearchResult,
-  findShortestPath,
   getBuilding,
   getDestinationIntel,
   search
 } from "./lib/campusEngine";
 import { useCampusData } from "./hooks/useCampusData";
 import { useLocationPermission } from "./hooks/useLocationPermission";
+import { usePreferences } from "./hooks/usePreferences";
 import type { DestinationTarget } from "./lib/campusEngine";
 import type { Building, BuildingCategory, CampusEvent, ClassScheduleEntry, Persona, SearchResult } from "./types/campus";
 
@@ -136,13 +136,11 @@ const CATEGORY_ROUTES: Record<CategoryId, { screen: Screen; buildingId?: string;
 export default function BeaconCampusApp() {
   const { campus, hasCustomizations, actions } = useCampusData();
   const location = useLocationPermission();
+  const { preferences, togglePreference } = usePreferences();
 
   const [persona, setPersona] = useState<Persona | null>(loadPersona);
   const [onboardingSeen, setOnboardingSeen] = useState<boolean>(() =>
     typeof window !== "undefined" ? window.localStorage.getItem("beacon-campus-onboarding-seen") === "1" : false
-  );
-  const [preferStepFree, setPreferStepFree] = useState<boolean>(() =>
-    typeof window !== "undefined" ? window.localStorage.getItem("beacon-campus-prefer-stepfree") === "1" : false
   );
 
   const [session, setSession] = useState<SessionState>(loadSession);
@@ -152,10 +150,6 @@ export default function BeaconCampusApp() {
   useEffect(() => {
     window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
   }, [session]);
-
-  useEffect(() => {
-    window.localStorage.setItem("beacon-campus-prefer-stepfree", preferStepFree ? "1" : "0");
-  }, [preferStepFree]);
 
   const patch = (partial: Partial<SessionState>) => setSession((prev) => ({ ...prev, ...partial }));
 
@@ -167,24 +161,21 @@ export default function BeaconCampusApp() {
     if (!session.activeDestinationTarget) return null;
     return getDestinationIntel(campus, session.activeDestinationTarget, {
       fromNodeId: session.startNodeId,
-      preferStepFree,
+      preferences,
       now
     });
-  }, [campus, session.activeDestinationTarget, session.startNodeId, preferStepFree, now]);
+  }, [campus, session.activeDestinationTarget, session.startNodeId, preferences, now]);
 
   const routePlan = useMemo(() => {
     if (!session.activeDestinationTarget) return null;
     return computeRoutePlan(campus, session.activeDestinationTarget, {
       fromNodeId: session.startNodeId,
-      preferStepFree,
+      preferences,
       now
     });
-  }, [campus, session.activeDestinationTarget, session.startNodeId, preferStepFree, now]);
+  }, [campus, session.activeDestinationTarget, session.startNodeId, preferences, now]);
 
-  const routePathIds = useMemo(() => {
-    if (!session.activeDestinationTarget) return [];
-    return findShortestPath(campus, session.startNodeId, session.activeDestinationTarget.buildingId, { preferStepFree })?.path ?? [];
-  }, [campus, session.activeDestinationTarget, session.startNodeId, preferStepFree]);
+  const routePathIds = routePlan?.path ?? [];
 
   const activeEvent: CampusEvent | undefined = session.activeEventId ? campus.events.find((e) => e.id === session.activeEventId) : undefined;
 
@@ -313,6 +304,7 @@ export default function BeaconCampusApp() {
           persona={persona}
           now={now}
           startNodeId={session.startNodeId}
+          preferences={preferences}
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
           searchResults={searchResults}
@@ -326,7 +318,13 @@ export default function BeaconCampusApp() {
       )}
 
       {session.screen === "schedule" && (
-        <ScheduleScreen campus={campus} now={now} startNodeId={session.startNodeId} onNavigateClass={handleStartClassNav} />
+        <ScheduleScreen
+          campus={campus}
+          now={now}
+          startNodeId={session.startNodeId}
+          preferences={preferences}
+          onNavigateClass={handleStartClassNav}
+        />
       )}
 
       {session.screen === "alerts" && <AlertsCenter campus={campus} onSelectBuilding={(id) => openBuilding(id)} />}
@@ -355,6 +353,7 @@ export default function BeaconCampusApp() {
             stepIndex={session.navStepIndex}
             routePath={routePathIds}
             startNodeId={session.startNodeId}
+            audioGuidance={preferences.audioGuidance}
             onNextStep={() => patch({ navStepIndex: session.navStepIndex + 1 })}
             onPrevStep={() => patch({ navStepIndex: Math.max(0, session.navStepIndex - 1) })}
             onArrive={arrive}
@@ -365,7 +364,12 @@ export default function BeaconCampusApp() {
 
       {session.screen === "arrival" &&
         (routePlan ? (
-          <ArrivalScreen plan={routePlan} onDone={doneArrival} onViewBuilding={() => openBuilding(routePlan.destination.buildingId)} />
+          <ArrivalScreen
+            plan={routePlan}
+            audioGuidance={preferences.audioGuidance}
+            onDone={doneArrival}
+            onViewBuilding={() => openBuilding(routePlan.destination.buildingId)}
+          />
         ) : (
           <ErrorState title="Something went wrong" message="We lost track of your route." />
         ))}
@@ -414,7 +418,9 @@ export default function BeaconCampusApp() {
 
       {session.screen === "assistant" && <QuickQuestions campus={campus} />}
 
-      {session.screen === "accessibility" && <AccessibilityPanel campus={campus} preferStepFree={preferStepFree} onToggleStepFree={setPreferStepFree} />}
+      {session.screen === "accessibility" && (
+        <AccessibilityPanel campus={campus} preferences={preferences} onTogglePreference={togglePreference} />
+      )}
 
       {session.screen === "admin" && <AdminDashboard campus={campus} actions={actions} hasCustomizations={hasCustomizations} />}
     </MobileAppShell>

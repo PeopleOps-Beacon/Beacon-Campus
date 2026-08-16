@@ -9,6 +9,8 @@ export function Card({ className, children, ...rest }: HTMLAttributes<HTMLDivEle
     <div
       className={cx(
         "rounded-[var(--radius-card)] border border-white/[0.06] bg-campus-surface p-4 shadow-[var(--shadow-card)]",
+        "transition-shadow duration-200 [transition-timing-function:var(--ease-premium)]",
+        "[button:hover>&]:shadow-[var(--shadow-card-hover)]",
         className
       )}
       {...rest}
@@ -35,7 +37,7 @@ export function Button({
   return (
     <button
       className={cx(
-        "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 text-sm font-semibold transition-colors duration-150",
+        "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 text-sm font-semibold transition-colors duration-150 [transition-timing-function:var(--ease-premium)]",
         "disabled:opacity-40 disabled:pointer-events-none",
         toneClasses[tone],
         className
@@ -122,6 +124,29 @@ export function IconTile({ children, tone = "neutral" }: { children: ReactNode; 
   };
   return (
     <div className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", toneClasses[tone])}>{children}</div>
+  );
+}
+
+export function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={onChange}
+      className={cx(
+        "relative h-6 w-11 shrink-0 rounded-full transition-colors [transition-timing-function:var(--ease-premium)]",
+        checked ? "bg-campus-gold" : "bg-white/15"
+      )}
+    >
+      <span
+        className={cx(
+          "absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform [transition-timing-function:var(--ease-premium)]",
+          checked ? "translate-x-[22px]" : "translate-x-0.5"
+        )}
+      />
+    </button>
   );
 }
 

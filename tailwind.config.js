@@ -5,7 +5,7 @@ export default {
     extend: {
       colors: {
         campus: {
-          ink: "#080a0d",
+          ink: "#07090b",
           surface: "#12161c",
           elevated: "#181d25",
           gold: "#f5b72f",

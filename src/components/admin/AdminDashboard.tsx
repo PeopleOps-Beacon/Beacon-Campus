@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle, Calendar, Construction, ShieldCheck, SquareParking } from "lucide-react";
 import type { AlertSeverity, Campus, CampusAlert, CampusEvent } from "../../types/campus";
-import { Badge, Button, Card, IconTile, SectionHeading, cx } from "../ui/Primitives";
+import { Badge, Button, Card, IconTile, SectionHeading, Toggle, cx } from "../ui/Primitives";
 
 type AdminActions = {
   toggleAlertActive: (id: string, current: boolean) => void;
@@ -94,16 +94,7 @@ function ToggleRow({ label, sub, active, onToggle }: { label: string; sub?: stri
         <p className="truncate text-sm font-medium text-white">{label}</p>
         {sub && <p className="truncate text-xs text-white/55">{sub}</p>}
       </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={active}
-        aria-label={`Toggle ${label}`}
-        onClick={onToggle}
-        className={cx("relative h-6 w-11 shrink-0 rounded-full transition-colors", active ? "bg-campus-gold" : "bg-white/15")}
-      >
-        <span className={cx("absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform", active ? "translate-x-[22px]" : "translate-x-0.5")} />
-      </button>
+      <Toggle checked={active} onChange={onToggle} label={`Toggle ${label}`} />
     </Card>
   );
 }

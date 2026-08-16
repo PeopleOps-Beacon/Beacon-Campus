@@ -1,7 +1,7 @@
 import { Navigation } from "lucide-react";
 import { JORDAN_SCHEDULE } from "../data/beaconUniversity";
 import { getDestinationIntel } from "../lib/campusEngine";
-import type { Campus, ClassScheduleEntry } from "../types/campus";
+import type { Campus, CampusPreferences, ClassScheduleEntry } from "../types/campus";
 import { formatClockTime, getLeaveByInfo } from "../utils/time";
 import { Badge, Card, IconTile, SectionHeading } from "./ui/Primitives";
 
@@ -9,11 +9,13 @@ export function ScheduleScreen({
   campus,
   now,
   startNodeId,
+  preferences,
   onNavigateClass
 }: {
   campus: Campus;
   now: Date;
   startNodeId: string;
+  preferences: CampusPreferences;
   onNavigateClass: (entry: ClassScheduleEntry) => void;
 }) {
   return (
@@ -26,7 +28,15 @@ export function ScheduleScreen({
       <SectionHeading title="Classes" />
       <div className="flex flex-col gap-3">
         {JORDAN_SCHEDULE.map((entry) => (
-          <ClassRow key={entry.id} campus={campus} entry={entry} now={now} startNodeId={startNodeId} onNavigate={() => onNavigateClass(entry)} />
+          <ClassRow
+            key={entry.id}
+            campus={campus}
+            entry={entry}
+            now={now}
+            startNodeId={startNodeId}
+            preferences={preferences}
+            onNavigate={() => onNavigateClass(entry)}
+          />
         ))}
       </div>
     </div>
@@ -38,17 +48,19 @@ function ClassRow({
   entry,
   now,
   startNodeId,
+  preferences,
   onNavigate
 }: {
   campus: Campus;
   entry: ClassScheduleEntry;
   now: Date;
   startNodeId: string;
+  preferences: CampusPreferences;
   onNavigate: () => void;
 }) {
   const building = campus.buildings.find((b) => b.id === entry.buildingId);
   if (!building) return null;
-  const intel = getDestinationIntel(campus, { buildingId: entry.buildingId, roomNumber: entry.roomNumber }, { fromNodeId: startNodeId, now });
+  const intel = getDestinationIntel(campus, { buildingId: entry.buildingId, roomNumber: entry.roomNumber }, { fromNodeId: startNodeId, preferences, now });
   const walkMinutes = intel?.walkMinutes ?? 0;
   const leaveBy = getLeaveByInfo(entry.time, walkMinutes, now);
   const isPast = leaveBy.tone === "past";

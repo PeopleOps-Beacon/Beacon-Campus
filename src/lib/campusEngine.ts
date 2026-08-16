@@ -1,7 +1,9 @@
 import type {
+  AmenityType,
   Building,
   Campus,
   CampusAlert,
+  CampusPreferences,
   DestinationIntel,
   Entrance,
   GuidanceStep,
@@ -11,6 +13,7 @@ import type {
   RoutePlan,
   SearchResult
 } from "../types/campus";
+import { DEFAULT_PREFERENCES } from "../types/campus";
 import { isWithinHours } from "../utils/time";
 
 // ---------------------------------------------------------------------------
@@ -66,57 +69,79 @@ export interface PathResult {
   minutes: number;
 }
 
-/** Dijkstra shortest path over the campus walking graph. */
-export function findShortestPath(
-  campus: Campus,
-  fromId: string,
-  toId: string,
-  opts: { preferStepFree?: boolean } = {}
-): PathResult | null {
+export interface RouteWeightOptions {
+  preferStepFree?: boolean;
+  avoidCrowds?: boolean;
+  calmRoute?: boolean;
+}
+
+/**
+ * Weighted "cost" for a given edge under the active preferences — this is
+ * what Dijkstra minimizes. It is deliberately different from the edge's real
+ * walking time: avoidCrowds/calmRoute nudge the algorithm toward a calmer
+ * path even when it takes a little longer, exactly like a real wayfinding
+ * preference should.
+ */
+function edgeCost(edge: Campus["pathEdges"][number], opts: RouteWeightOptions): number {
+  let cost = edge.minutes;
+  if (opts.avoidCrowds && edge.crowdLevel) cost += edge.crowdLevel * 1.2;
+  if (opts.calmRoute) {
+    if (edge.noiseLevel) cost += edge.noiseLevel * 0.6;
+    if (edge.lowStimulation) cost -= 0.8;
+  }
+  return cost;
+}
+
+/** Dijkstra shortest path over the campus walking graph, weighted by preference. */
+export function findShortestPath(campus: Campus, fromId: string, toId: string, opts: RouteWeightOptions = {}): PathResult | null {
   if (fromId === toId) return { path: [fromId], minutes: 0 };
 
-  const adjacency = new Map<string, { to: string; minutes: number }[]>();
+  const adjacency = new Map<string, { to: string; cost: number; minutes: number }[]>();
   for (const edge of campus.pathEdges) {
     if (opts.preferStepFree && !edge.accessible) continue;
+    const cost = edgeCost(edge, opts);
     if (!adjacency.has(edge.from)) adjacency.set(edge.from, []);
     if (!adjacency.has(edge.to)) adjacency.set(edge.to, []);
-    adjacency.get(edge.from)!.push({ to: edge.to, minutes: edge.minutes });
-    adjacency.get(edge.to)!.push({ to: edge.from, minutes: edge.minutes });
+    adjacency.get(edge.from)!.push({ to: edge.to, cost, minutes: edge.minutes });
+    adjacency.get(edge.to)!.push({ to: edge.from, cost, minutes: edge.minutes });
   }
 
-  const dist = new Map<string, number>();
+  const costSoFar = new Map<string, number>();
+  const minutesSoFar = new Map<string, number>();
   const prev = new Map<string, string>();
   const visited = new Set<string>();
-  dist.set(fromId, 0);
+  costSoFar.set(fromId, 0);
+  minutesSoFar.set(fromId, 0);
 
   const queue = new Set<string>(campus.pathNodes.map((n) => n.id));
 
   while (queue.size > 0) {
     let current: string | null = null;
-    let currentDist = Infinity;
+    let currentCost = Infinity;
     for (const id of queue) {
-      const d = dist.get(id) ?? Infinity;
-      if (d < currentDist) {
-        currentDist = d;
+      const c = costSoFar.get(id) ?? Infinity;
+      if (c < currentCost) {
+        currentCost = c;
         current = id;
       }
     }
-    if (current === null || currentDist === Infinity) break;
+    if (current === null || currentCost === Infinity) break;
     queue.delete(current);
     visited.add(current);
     if (current === toId) break;
 
     for (const neighbor of adjacency.get(current) ?? []) {
       if (visited.has(neighbor.to)) continue;
-      const candidate = currentDist + neighbor.minutes;
-      if (candidate < (dist.get(neighbor.to) ?? Infinity)) {
-        dist.set(neighbor.to, candidate);
+      const candidateCost = currentCost + neighbor.cost;
+      if (candidateCost < (costSoFar.get(neighbor.to) ?? Infinity)) {
+        costSoFar.set(neighbor.to, candidateCost);
+        minutesSoFar.set(neighbor.to, (minutesSoFar.get(current) ?? 0) + neighbor.minutes);
         prev.set(neighbor.to, current);
       }
     }
   }
 
-  if (!dist.has(toId)) return null;
+  if (!costSoFar.has(toId)) return null;
 
   const path: string[] = [toId];
   let cursor = toId;
@@ -125,7 +150,27 @@ export function findShortestPath(
     path.unshift(cursor);
   }
 
-  return { path, minutes: Math.round(dist.get(toId)!) };
+  return { path, minutes: Math.round(minutesSoFar.get(toId) ?? 0) };
+}
+
+/** Finds the nearest building (other than `excludeBuildingId`) with a given amenity type. */
+export function findNearbyAmenityBuilding(
+  campus: Campus,
+  fromNodeId: string,
+  amenityType: AmenityType,
+  excludeBuildingId: string,
+  opts: RouteWeightOptions = {}
+): { building: Building; minutes: number } | undefined {
+  let best: { building: Building; minutes: number } | undefined;
+  for (const building of campus.buildings) {
+    if (building.id === excludeBuildingId) continue;
+    if (!building.amenities.some((a) => a.type === amenityType)) continue;
+    const result = findShortestPath(campus, fromNodeId, building.id, opts);
+    if (result && (!best || result.minutes < best.minutes)) {
+      best = { building, minutes: result.minutes };
+    }
+  }
+  return best;
 }
 
 // ---------------------------------------------------------------------------
@@ -223,13 +268,58 @@ export interface DestinationTarget {
   eligibility?: ParkingEligibility;
 }
 
+interface WeightedRoute {
+  path: string[];
+  minutes: number;
+  waypoint?: { building: Building; note: string };
+}
+
+/**
+ * Resolves the actual path to walk, including the restroomStop waypoint
+ * detour when requested and the extraTime multiplier on the final estimate.
+ * Both getDestinationIntel and computeRoutePlan call this so the walk time
+ * shown on a destination card always matches the route that's actually
+ * guided step by step.
+ */
+function planWeightedPath(campus: Campus, fromNodeId: string, buildingId: string, preferences: CampusPreferences): WeightedRoute {
+  const weightOpts: RouteWeightOptions = {
+    preferStepFree: preferences.stepFree,
+    avoidCrowds: preferences.avoidCrowds,
+    calmRoute: preferences.calmRoute
+  };
+
+  const direct = findShortestPath(campus, fromNodeId, buildingId, weightOpts) ?? { path: [fromNodeId, buildingId], minutes: 0 };
+  let path = direct.path;
+  let minutes = direct.minutes;
+  let waypoint: WeightedRoute["waypoint"];
+
+  if (preferences.restroomStop) {
+    const nearby = findNearbyAmenityBuilding(campus, fromNodeId, "restroom", buildingId, weightOpts);
+    if (nearby && !direct.path.includes(nearby.building.id)) {
+      const leg1 = findShortestPath(campus, fromNodeId, nearby.building.id, weightOpts);
+      const leg2 = findShortestPath(campus, nearby.building.id, buildingId, weightOpts);
+      if (leg1 && leg2) {
+        path = [...leg1.path, ...leg2.path.slice(1)];
+        minutes = leg1.minutes + leg2.minutes + 1;
+        waypoint = { building: nearby.building, note: `Quick stop: restroom inside ${nearby.building.name}.` };
+      }
+    }
+  }
+
+  if (preferences.extraTime) minutes = Math.round(minutes * 1.25);
+
+  return { path, minutes, waypoint };
+}
+
 export function getDestinationIntel(
   campus: Campus,
   target: DestinationTarget,
-  opts: { fromNodeId?: string; preferStepFree?: boolean; now?: Date } = {}
+  opts: { fromNodeId?: string; preferences?: CampusPreferences; now?: Date } = {}
 ): DestinationIntel | null {
   const building = getBuilding(campus, target.buildingId);
   if (!building) return null;
+
+  const preferences = opts.preferences ?? DEFAULT_PREFERENCES;
 
   // Room-only callers (e.g. the class schedule) may omit floor — resolve it
   // from the building's room list so arrival guidance is never wrong.
@@ -237,11 +327,17 @@ export function getDestinationIntel(
     target.floor ?? (target.roomNumber ? building.rooms.find((r) => r.number === target.roomNumber)?.floor : undefined);
 
   const fromNodeId = opts.fromNodeId ?? "green";
-  const pathResult = findShortestPath(campus, fromNodeId, building.id, { preferStepFree: opts.preferStepFree });
-  const entranceRec = recommendEntrance(campus, building, { preferStepFree: opts.preferStepFree });
+  const route = planWeightedPath(campus, fromNodeId, building.id, preferences);
+  const entranceRec = recommendEntrance(campus, building, { preferStepFree: preferences.stepFree });
   const openStatus = buildingOpenStatus(building, opts.now);
   const parkingRec = resolveParkingForBuilding(campus, building, { eligibility: target.eligibility });
   const activeAlerts = activeAlertsForBuilding(campus, building.id);
+
+  const notes: string[] = [];
+  if (preferences.stepFree) notes.push(`Route adjusted for step-free access via the ${entranceRec.entrance.label}.`);
+  if (preferences.avoidCrowds) notes.push("Route adjusted to avoid the busiest walkways.");
+  if (preferences.calmRoute) notes.push("Route adjusted for a quieter, lower-stimulation path.");
+  if (route.waypoint) notes.push(route.waypoint.note);
 
   return {
     buildingId: building.id,
@@ -250,22 +346,44 @@ export function getDestinationIntel(
     subtitle: target.subtitle,
     roomNumber: target.roomNumber,
     floor: resolvedFloor,
-    walkMinutes: (pathResult?.minutes ?? 0) + entranceRec.addedMinutes,
+    walkMinutes: route.minutes + entranceRec.addedMinutes,
     recommendedEntrance: entranceRec.entrance,
     entranceSubstituted: entranceRec.substituted,
     addedMinutes: entranceRec.addedMinutes,
     openStatus,
-    accessibilityNote: opts.preferStepFree
-      ? `Route adjusted for step-free access via the ${entranceRec.entrance.label}.`
-      : undefined,
+    accessibilityNote: notes.length > 0 ? notes.join(" ") : undefined,
     recommendedParking: parkingRec?.lot,
     parkingWalkMinutes: parkingRec?.walkMinutes,
     activeAlerts
   };
 }
 
-function arrivalMessage(intel: DestinationIntel): string {
+const REASSURANCE_MESSAGES = [
+  "You're doing great — no need to rush.",
+  "Almost there. Take your time.",
+  "You're on the right path.",
+  "Nice and easy — you've got this."
+];
+
+function reassuranceMessageFor(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  return REASSURANCE_MESSAGES[hash % REASSURANCE_MESSAGES.length];
+}
+
+function arrivalMessage(intel: DestinationIntel, simplified: boolean): string {
   const { building, recommendedEntrance, roomNumber, floor } = intel;
+
+  if (simplified) {
+    const parts = [`You've arrived at ${building.name}.`, `Go in through the ${recommendedEntrance.label.toLowerCase()}.`];
+    if (roomNumber && floor && floor > 1) {
+      parts.push(`Room ${roomNumber} is on floor ${floor}.`);
+    } else if (roomNumber) {
+      parts.push(`Room ${roomNumber} is on this floor.`);
+    }
+    return parts.join(" ");
+  }
+
   const parts: string[] = [`You're at ${building.name}.`];
   parts.push(`Enter through the ${recommendedEntrance.label.toLowerCase()}${recommendedEntrance.notes ? ` — ${recommendedEntrance.notes.toLowerCase()}` : ""}.`);
 
@@ -287,7 +405,14 @@ function arrivalMessage(intel: DestinationIntel): string {
   return parts.join(" ");
 }
 
-export function getGuidanceSteps(campus: Campus, intel: DestinationIntel, path: string[]): GuidanceStep[] {
+export function getGuidanceSteps(
+  campus: Campus,
+  intel: DestinationIntel,
+  path: string[],
+  opts: { preferences?: CampusPreferences; waypoint?: { building: Building; note: string } } = {}
+): GuidanceStep[] {
+  const preferences = opts.preferences ?? DEFAULT_PREFERENCES;
+  const simplified = preferences.simplifiedDirections;
   const steps: GuidanceStep[] = [];
   let order = 0;
   let minutesFromStart = 0;
@@ -303,13 +428,23 @@ export function getGuidanceSteps(campus: Campus, intel: DestinationIntel, path: 
     });
   }
 
-  const edgeMinutes = (a: string, b: string) =>
-    campus.pathEdges.find((e) => (e.from === a && e.to === b) || (e.from === b && e.to === a))?.minutes ?? 0;
+  const weightOpts: RouteWeightOptions = {
+    preferStepFree: preferences.stepFree,
+    avoidCrowds: preferences.avoidCrowds,
+    calmRoute: preferences.calmRoute
+  };
+  const edgeMinutes = (a: string, b: string) => {
+    const candidates = campus.pathEdges.filter((e) => (e.from === a && e.to === b) || (e.from === b && e.to === a));
+    if (candidates.length === 0) return 0;
+    const best = candidates.reduce((min, e) => (edgeCost(e, weightOpts) < edgeCost(min, weightOpts) ? e : min));
+    return best.minutes;
+  };
+  const timeScale = preferences.extraTime ? 1.25 : 1;
 
   for (let i = 1; i < path.length; i++) {
     const nodeId = path[i];
     const prevId = path[i - 1];
-    minutesFromStart += edgeMinutes(prevId, nodeId);
+    minutesFromStart += edgeMinutes(prevId, nodeId) * timeScale;
     const isDestination = i === path.length - 1;
     const node = campus.pathNodes.find((n) => n.id === nodeId);
 
@@ -317,33 +452,53 @@ export function getGuidanceSteps(campus: Campus, intel: DestinationIntel, path: 
       steps.push({
         id: `step-${order}`,
         order: order++,
-        instruction: `${intel.building.name} will be just ahead.`,
+        instruction: simplified ? `${intel.building.name} is just ahead.` : `${intel.building.name} will be just ahead.`,
         category: "landmark",
-        minutesFromStart
+        minutesFromStart: Math.round(minutesFromStart)
       });
       steps.push({
         id: `step-${order}`,
         order: order++,
-        instruction: `Use the ${intel.recommendedEntrance.label.toLowerCase()}.`,
+        instruction: simplified ? `Go in the ${intel.recommendedEntrance.label.toLowerCase()}.` : `Use the ${intel.recommendedEntrance.label.toLowerCase()}.`,
         category: "direction",
-        minutesFromStart
+        minutesFromStart: Math.round(minutesFromStart)
+      });
+    } else if (opts.waypoint && nodeId === opts.waypoint.building.id) {
+      steps.push({
+        id: `step-${order}`,
+        order: order++,
+        instruction: opts.waypoint.note,
+        category: "accessibility",
+        minutesFromStart: Math.round(minutesFromStart)
       });
     } else if (node?.isLandmark) {
       const verb = i === 1 ? "Head toward" : "Continue past";
       steps.push({
         id: `step-${order}`,
         order: order++,
-        instruction: `${verb} ${node.label}.`,
+        instruction: simplified ? `Pass ${node.label}.` : `${verb} ${node.label}.`,
         category: "landmark",
-        minutesFromStart
+        minutesFromStart: Math.round(minutesFromStart)
       });
     }
   }
 
+  if (preferences.reassurance && steps.length > 0) {
+    const insertAt = Math.max(1, Math.floor(steps.length / 2));
+    steps.splice(insertAt, 0, {
+      id: `step-reassurance`,
+      order: insertAt,
+      instruction: reassuranceMessageFor(intel.building.id),
+      category: "reassurance",
+      minutesFromStart: steps[insertAt - 1]?.minutesFromStart ?? 0
+    });
+    steps.forEach((s, i) => (s.order = i));
+  }
+
   steps.push({
     id: `step-${order}`,
-    order: order++,
-    instruction: arrivalMessage(intel),
+    order: steps.length,
+    instruction: arrivalMessage(intel, simplified),
     category: "arrival",
     minutesFromStart: intel.walkMinutes
   });
@@ -354,22 +509,24 @@ export function getGuidanceSteps(campus: Campus, intel: DestinationIntel, path: 
 export function computeRoutePlan(
   campus: Campus,
   target: DestinationTarget,
-  opts: { fromNodeId?: string; preferStepFree?: boolean; now?: Date } = {}
+  opts: { fromNodeId?: string; preferences?: CampusPreferences; now?: Date } = {}
 ): RoutePlan | null {
+  const preferences = opts.preferences ?? DEFAULT_PREFERENCES;
   const intel = getDestinationIntel(campus, target, opts);
   if (!intel) return null;
 
   const fromNodeId = opts.fromNodeId ?? "green";
-  const pathResult = findShortestPath(campus, fromNodeId, intel.buildingId, { preferStepFree: opts.preferStepFree });
-  const path = pathResult?.path ?? [fromNodeId, intel.buildingId];
-  const steps = getGuidanceSteps(campus, intel, path);
+  const route = planWeightedPath(campus, fromNodeId, intel.buildingId, preferences);
+  const steps = getGuidanceSteps(campus, intel, route.path, { preferences, waypoint: route.waypoint });
   const startNode = campus.pathNodes.find((n) => n.id === fromNodeId);
 
   return {
     destination: intel,
     steps,
     totalMinutes: intel.walkMinutes,
-    startLabel: startNode?.label ?? "Your location"
+    startLabel: startNode?.label ?? "Your location",
+    waypoint: route.waypoint,
+    path: route.path
   };
 }
 

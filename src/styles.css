@@ -3,7 +3,9 @@
 @tailwind utilities;
 
 :root {
-  --color-background: #080a0d;
+  /* Canvas/primary/danger match Beacon Airport's tokens exactly for brand
+     family cohesion; secondary/success are campus-specific accents. */
+  --color-background: #07090b;
   --color-surface: #12161c;
   --color-elevated: #181d25;
   --color-border: rgba(255, 255, 255, 0.08);
@@ -11,14 +13,14 @@
   --color-text-muted: #9aa3af;
   --color-primary: #f5b72f;
   --color-primary-ink: #241a02;
-  --color-secondary: #4ade80;
+  --color-secondary: #93c5fd;
   --color-info: #93c5fd;
   --color-warning: #f5b72f;
   --color-danger: #f87171;
   --color-success: #4ade80;
 
-  --radius-card: 16px;
-  --radius-control: 12px;
+  --radius-card: 8px;
+  --radius-control: 8px;
   --radius-pill: 999px;
 
   --font-display: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);
@@ -34,6 +36,12 @@
   --touch-target: 44px;
 
   color-scheme: dark;
+}
+
+/* Larger Text accessibility preference — a single global scale bump,
+   matching Beacon Airport's large-text approach. */
+html.large-text {
+  font-size: 1.16rem;
 }
 
 * {

@@ -1,18 +1,27 @@
+import { useEffect } from "react";
 import { CheckCircle2 } from "lucide-react";
+import { speak } from "../lib/speech";
 import type { RoutePlan } from "../types/campus";
 import { Badge, Button, Card, IconTile } from "./ui/Primitives";
 
 export function ArrivalScreen({
   plan,
+  audioGuidance,
   onDone,
   onViewBuilding
 }: {
   plan: RoutePlan;
+  audioGuidance: boolean;
   onDone: () => void;
   onViewBuilding: () => void;
 }) {
   const arrivalStep = plan.steps.find((s) => s.category === "arrival");
   const { building } = plan.destination;
+
+  useEffect(() => {
+    if (audioGuidance && arrivalStep) speak(arrivalStep.instruction);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex flex-col items-center gap-5 pt-4 text-center">
@@ -25,7 +34,9 @@ export function ArrivalScreen({
       </div>
 
       <Card className="text-left">
-        <p className="text-base leading-relaxed text-white">{arrivalStep?.instruction}</p>
+        <p className="text-base leading-relaxed text-white" aria-live="polite">
+          {arrivalStep?.instruction}
+        </p>
       </Card>
 
       <div className="flex w-full gap-2.5">
