@@ -1,4 +1,4 @@
-import { Accessibility, SquareParking } from "lucide-react";
+import { Accessibility, Car, SquareParking } from "lucide-react";
 import { activeAlertsForParking } from "../lib/campusEngine";
 import type { Campus, ParkingLot } from "../types/campus";
 import { Badge, Card, IconTile } from "./ui/Primitives";
@@ -9,7 +9,15 @@ const ELIGIBILITY_LABEL: Record<string, string> = {
   faculty: "Faculty & staff"
 };
 
-export function ParkingScreen({ campus }: { campus: Campus }) {
+export function ParkingScreen({
+  campus,
+  savedCarLotId,
+  onRememberCarHere
+}: {
+  campus: Campus;
+  savedCarLotId?: string;
+  onRememberCarHere?: (lotId: string) => void;
+}) {
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -18,25 +26,42 @@ export function ParkingScreen({ campus }: { campus: Campus }) {
       </div>
       <div className="flex flex-col gap-3">
         {campus.parkingLots.map((lot) => (
-          <ParkingLotCard key={lot.id} campus={campus} lot={lot} />
+          <ParkingLotCard
+            key={lot.id}
+            campus={campus}
+            lot={lot}
+            isCar={lot.id === savedCarLotId}
+            onRememberCarHere={onRememberCarHere}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function ParkingLotCard({ campus, lot }: { campus: Campus; lot: ParkingLot }) {
+function ParkingLotCard({
+  campus,
+  lot,
+  isCar,
+  onRememberCarHere
+}: {
+  campus: Campus;
+  lot: ParkingLot;
+  isCar: boolean;
+  onRememberCarHere?: (lotId: string) => void;
+}) {
   const alerts = activeAlertsForParking(campus, lot.id);
   return (
-    <Card className={lot.closed ? "border-red-500/25 bg-red-500/[0.04]" : undefined}>
+    <Card className={lot.closed ? "border-red-500/25 bg-red-500/[0.04]" : isCar ? "border-campus-gold/30" : undefined}>
       <div className="flex items-start gap-3">
-        <IconTile tone={lot.closed ? "danger" : "info"}>
+        <IconTile tone={lot.closed ? "danger" : isCar ? "gold" : "info"}>
           <SquareParking size={18} aria-hidden="true" />
         </IconTile>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="text-sm font-semibold text-white">{lot.name}</p>
             {lot.closed && <Badge tone="danger">Closed</Badge>}
+            {isCar && <Badge tone="gold">My car</Badge>}
           </div>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {lot.eligibility.map((e) => (
@@ -60,6 +85,17 @@ function ParkingLotCard({ campus, lot }: { campus: Campus; lot: ParkingLot }) {
               {alert.message}
             </p>
           ))}
+          {onRememberCarHere && !isCar && (
+            <button
+              type="button"
+              onClick={() => onRememberCarHere(lot.id)}
+              disabled={lot.closed}
+              className="mt-3 flex items-center gap-1.5 rounded-full bg-white/[0.08] px-3 py-1.5 text-xs font-semibold text-white/80 disabled:opacity-40"
+            >
+              <Car size={13} aria-hidden="true" />
+              Remember my car here
+            </button>
+          )}
         </div>
       </div>
     </Card>

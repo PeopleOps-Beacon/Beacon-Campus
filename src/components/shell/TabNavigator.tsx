@@ -1,14 +1,14 @@
-import { Bell, Calendar, Home as HomeIcon, MoreHorizontal, Search } from "lucide-react";
+import { Bell, Calendar, Compass, MapIcon, User } from "lucide-react";
 import { cx } from "../ui/Primitives";
 
-export type TabId = "home" | "search" | "schedule" | "alerts" | "more";
+export type TabId = "map" | "myday" | "explore" | "alerts" | "profile";
 
-const TABS: { id: TabId; label: string; icon: typeof HomeIcon }[] = [
-  { id: "home", label: "Home", icon: HomeIcon },
-  { id: "search", label: "Search", icon: Search },
-  { id: "schedule", label: "Schedule", icon: Calendar },
+const TABS: { id: TabId; label: string; icon: typeof MapIcon }[] = [
+  { id: "map", label: "Map", icon: MapIcon },
+  { id: "myday", label: "My Day", icon: Calendar },
+  { id: "explore", label: "Explore", icon: Compass },
   { id: "alerts", label: "Alerts", icon: Bell },
-  { id: "more", label: "More", icon: MoreHorizontal }
+  { id: "profile", label: "Profile", icon: User }
 ];
 
 export function TabNavigator({

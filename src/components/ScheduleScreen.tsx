@@ -3,7 +3,23 @@ import { DEMO_PERSONA, JORDAN_SCHEDULE } from "../data/beaconUniversity";
 import { getDestinationIntel } from "../lib/campusEngine";
 import type { Campus, CampusPreferences, ClassScheduleEntry } from "../types/campus";
 import { formatClockTime, getLeaveByInfo } from "../utils/time";
-import { Badge, Card, SectionHeading, cx } from "./ui/Primitives";
+import { Badge, Button, Card, SectionHeading, cx } from "./ui/Primitives";
+
+function timeGreeting(now: Date): string {
+  const h = now.getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function nextUpcoming(entries: ClassScheduleEntry[], now: Date): ClassScheduleEntry | null {
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  for (const entry of entries) {
+    const [h, m] = entry.time.split(":").map(Number);
+    if (h * 60 + m >= nowMinutes - 5) return entry;
+  }
+  return null;
+}
 
 export function ScheduleScreen({
   campus,
@@ -18,40 +34,43 @@ export function ScheduleScreen({
   preferences: CampusPreferences;
   onNavigateClass: (entry: ClassScheduleEntry) => void;
 }) {
+  const upNext = nextUpcoming(JORDAN_SCHEDULE, now);
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div>
         <p className="text-sm text-white/50">
-          {DEMO_PERSONA.name} · {DEMO_PERSONA.status}
+          {timeGreeting(now)}, {DEMO_PERSONA.name}
         </p>
-        <h1 className="text-[var(--font-display)] font-bold text-white">Today's Schedule</h1>
+        <h1 className="text-[var(--font-display)] font-bold text-white">My Day</h1>
       </div>
 
-      <SectionHeading title="Classes" />
-      <div className="flex flex-col gap-3">
-        {JORDAN_SCHEDULE.map((entry) => (
-          <ClassRow
-            key={entry.id}
-            campus={campus}
-            entry={entry}
-            now={now}
-            startNodeId={startNodeId}
-            preferences={preferences}
-            onNavigate={() => onNavigateClass(entry)}
-          />
-        ))}
+      {upNext && (
+        <NextUpCard campus={campus} entry={upNext} now={now} startNodeId={startNodeId} preferences={preferences} onNavigate={() => onNavigateClass(upNext)} />
+      )}
+
+      <div>
+        <SectionHeading title="Today" />
+        <div className="flex flex-col gap-3">
+          {JORDAN_SCHEDULE.map((entry) => (
+            <ClassRow
+              key={entry.id}
+              campus={campus}
+              entry={entry}
+              now={now}
+              startNodeId={startNodeId}
+              preferences={preferences}
+              onNavigate={() => onNavigateClass(entry)}
+              isNext={entry.id === upNext?.id}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-/** Splits "10:30 AM" into ["10:30", "AM"] so each half can be sized to fit the time badge circle. */
-function splitClockTime(value: string): [string, string] {
-  const match = value.match(/^(\d{1,2}:\d{2})\s*([AP]M)$/i);
-  return match ? [match[1], match[2].toUpperCase()] : [value, ""];
-}
-
-function ClassRow({
+function NextUpCard({
   campus,
   entry,
   now,
@@ -71,11 +90,61 @@ function ClassRow({
   const intel = getDestinationIntel(campus, { buildingId: entry.buildingId, roomNumber: entry.roomNumber }, { fromNodeId: startNodeId, preferences, now });
   const walkMinutes = intel?.walkMinutes ?? 0;
   const leaveBy = getLeaveByInfo(entry.time, walkMinutes, now);
+  const accessible = intel?.recommendedEntrance.accessible;
+
+  return (
+    <Card className="flex flex-col gap-3 border-campus-gold/25 bg-campus-gold/[0.06]">
+      <Badge tone="gold">Next · {formatClockTime(entry.time)}</Badge>
+      <div>
+        <p className="text-lg font-bold text-white">
+          {entry.courseName} <span className="font-normal text-white/50">({entry.course})</span>
+        </p>
+        <p className="text-sm text-white/65">
+          {building.name}, Room {entry.roomNumber} · {walkMinutes} min {accessible ? "accessible " : ""}walk
+        </p>
+      </div>
+      <p className="text-sm text-white/75">{leaveBy.message}</p>
+      <Button tone="primary" onClick={onNavigate}>
+        <Navigation size={15} aria-hidden="true" />
+        Start route
+      </Button>
+    </Card>
+  );
+}
+
+/** Splits "10:30 AM" into ["10:30", "AM"] so each half can be sized to fit the time badge circle. */
+function splitClockTime(value: string): [string, string] {
+  const match = value.match(/^(\d{1,2}:\d{2})\s*([AP]M)$/i);
+  return match ? [match[1], match[2].toUpperCase()] : [value, ""];
+}
+
+function ClassRow({
+  campus,
+  entry,
+  now,
+  startNodeId,
+  preferences,
+  onNavigate,
+  isNext
+}: {
+  campus: Campus;
+  entry: ClassScheduleEntry;
+  now: Date;
+  startNodeId: string;
+  preferences: CampusPreferences;
+  onNavigate: () => void;
+  isNext: boolean;
+}) {
+  const building = campus.buildings.find((b) => b.id === entry.buildingId);
+  if (!building) return null;
+  const intel = getDestinationIntel(campus, { buildingId: entry.buildingId, roomNumber: entry.roomNumber }, { fromNodeId: startNodeId, preferences, now });
+  const walkMinutes = intel?.walkMinutes ?? 0;
+  const leaveBy = getLeaveByInfo(entry.time, walkMinutes, now);
   const isPast = leaveBy.tone === "past";
   const [hourMin, ampm] = splitClockTime(formatClockTime(entry.time));
 
   return (
-    <Card className={isPast ? "opacity-50" : undefined}>
+    <Card className={isPast ? "opacity-50" : isNext ? "border-campus-gold/30" : undefined}>
       <div className="flex items-start gap-3">
         <div
           className={cx(

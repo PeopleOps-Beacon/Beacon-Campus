@@ -260,6 +260,54 @@ export function resolveParkingForBuilding(
 }
 
 // ---------------------------------------------------------------------------
+// Remember My Car — routing back to a saved parking spot. Kept deliberately
+// separate from the building-oriented DestinationIntel/RoutePlan pipeline
+// above (which assumes a Building at the far end, with entrances, floors,
+// rooms) rather than contorting a parking lot into a fake building.
+// ---------------------------------------------------------------------------
+
+export interface ParkingReturnPlan {
+  lot: ParkingLot;
+  walkMinutes: number;
+  path: string[];
+  startLabel: string;
+  steps: string[];
+}
+
+export function planReturnToCar(
+  campus: Campus,
+  fromNodeId: string,
+  lot: ParkingLot,
+  preferences: CampusPreferences
+): ParkingReturnPlan | null {
+  const weightOpts: RouteWeightOptions = {
+    preferStepFree: preferences.stepFree,
+    avoidCrowds: preferences.avoidCrowds,
+    calmRoute: preferences.calmRoute
+  };
+  const result = findShortestPath(campus, fromNodeId, lot.id, weightOpts);
+  if (!result) return null;
+
+  const minutes = preferences.extraTime ? Math.round(result.minutes * 1.25) : result.minutes;
+  const startNode = campus.pathNodes.find((n) => n.id === fromNodeId);
+
+  const steps: string[] = [];
+  for (let i = 1; i < result.path.length - 1; i++) {
+    const node = campus.pathNodes.find((n) => n.id === result.path[i]);
+    if (node?.isLandmark) steps.push(`Continue past ${node.label}.`);
+  }
+  steps.push(`You've arrived at ${lot.name}, where you parked.`);
+
+  return {
+    lot,
+    walkMinutes: minutes,
+    path: result.path,
+    startLabel: startNode?.label ?? "Your location",
+    steps
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Destination intelligence + route plan
 // ---------------------------------------------------------------------------
 

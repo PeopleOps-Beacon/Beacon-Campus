@@ -1,4 +1,5 @@
 import type { Campus } from "../types/campus";
+import { cx } from "./ui/Primitives";
 
 const CATEGORY_COLOR: Record<string, string> = {
   academic: "#93c5fd",
@@ -19,7 +20,11 @@ export function CampusMap({
   startNodeId,
   pinPoint,
   height = 220,
-  onSelectBuilding
+  fill = false,
+  onSelectBuilding,
+  onSelectParking,
+  savedCarLotId,
+  className
 }: {
   campus: Campus;
   highlightBuildingId?: string;
@@ -27,7 +32,12 @@ export function CampusMap({
   startNodeId?: string;
   pinPoint?: { x: number; y: number };
   height?: number;
+  /** Fills its container via CSS instead of an inline pixel height — for full-bleed map screens. */
+  fill?: boolean;
   onSelectBuilding?: (buildingId: string) => void;
+  onSelectParking?: (lotId: string) => void;
+  savedCarLotId?: string;
+  className?: string;
 }) {
   const pointFor = (id: string) => campus.pathNodes.find((n) => n.id === id)?.point;
   const routePoints = (routePath ?? []).map(pointFor).filter((p): p is { x: number; y: number } => Boolean(p));
@@ -43,8 +53,9 @@ export function CampusMap({
       viewBox="0 0 1000 700"
       role="img"
       aria-label={`Simulated map of ${campus.universityName} campus`}
-      style={{ height }}
-      className="w-full rounded-[var(--radius-card)] border border-white/[0.06] bg-[#0a0d12]"
+      style={fill ? undefined : { height }}
+      className={cx("w-full rounded-[var(--radius-card)] border border-white/[0.06] bg-[#0a0d12]", fill && "h-full", className)}
+      preserveAspectRatio="xMidYMid slice"
     >
       <rect x="0" y="0" width="1000" height="700" fill="#0a0d12" />
       {/* Bowman Field */}
@@ -86,14 +97,35 @@ export function CampusMap({
       )}
 
       {/* Parking */}
-      {campus.parkingLots.map((lot) => (
-        <g key={lot.id} opacity={lot.closed ? 0.35 : 0.9}>
-          <circle cx={lot.point.x} cy={lot.point.y} r={10} fill="#1c2430" stroke={lot.closed ? "#f87171" : "#93c5fd"} strokeWidth={1.5} />
-          <text x={lot.point.x} y={lot.point.y + 4} textAnchor="middle" fontSize="10" fontWeight={700} fill={lot.closed ? "#f87171" : "#93c5fd"}>
-            P
-          </text>
-        </g>
-      ))}
+      {campus.parkingLots.map((lot) => {
+        const isCar = lot.id === savedCarLotId;
+        return (
+          <g
+            key={lot.id}
+            opacity={lot.closed ? 0.35 : 0.9}
+            onClick={onSelectParking ? () => onSelectParking(lot.id) : undefined}
+            onKeyDown={
+              onSelectParking
+                ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onSelectParking(lot.id);
+                    }
+                  }
+                : undefined
+            }
+            style={{ cursor: onSelectParking ? "pointer" : "default", outlineOffset: 4 }}
+            role={onSelectParking ? "button" : undefined}
+            tabIndex={onSelectParking ? 0 : undefined}
+            aria-label={onSelectParking ? lot.name : undefined}
+          >
+            <circle cx={lot.point.x} cy={lot.point.y} r={10} fill={isCar ? "#f5b72f" : "#1c2430"} stroke={lot.closed ? "#f87171" : isCar ? "#f5b72f" : "#93c5fd"} strokeWidth={1.5} />
+            <text x={lot.point.x} y={lot.point.y + 4} textAnchor="middle" fontSize="10" fontWeight={700} fill={lot.closed ? "#f87171" : isCar ? "#080a0d" : "#93c5fd"}>
+              {isCar ? "C" : "P"}
+            </text>
+          </g>
+        );
+      })}
 
       {/* Buildings */}
       {campus.buildings.map((b) => {

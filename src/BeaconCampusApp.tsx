@@ -12,6 +12,7 @@ import { useLocationPermission } from "./hooks/useLocationPermission";
 import { usePreferences } from "./hooks/usePreferences";
 import { useAnalytics } from "./hooks/useAnalytics";
 import { useNotificationRead } from "./hooks/useNotificationRead";
+import { useSavedCar } from "./hooks/useSavedCar";
 import type { DestinationTarget } from "./lib/campusEngine";
 import { effectivePreferences, type Building, type BuildingCategory, type Campus, type CampusEvent, type ClassScheduleEntry, type Persona, type RouteMode, type SearchResult } from "./types/campus";
 
@@ -19,9 +20,7 @@ import { MobileAppShell } from "./components/shell/MobileAppShell";
 import type { TabId } from "./components/shell/TabNavigator";
 import { LandingScreen } from "./components/LandingScreen";
 import { Onboarding } from "./components/Onboarding";
-import { LocationPermissionPrompt } from "./components/LocationPermissionPrompt";
-import { HomeScreen, type CategoryId } from "./components/HomeScreen";
-import { DestinationCard } from "./components/DestinationCard";
+import { MapScreen } from "./components/MapScreen";
 import { RouteModeScreen } from "./components/RouteModeScreen";
 import { NavigationScreen } from "./components/NavigationScreen";
 import { ArrivalScreen } from "./components/ArrivalScreen";
@@ -38,24 +37,19 @@ import { AccessibilityPanel } from "./components/AccessibilityPanel";
 import { QuickQuestions } from "./components/QuickQuestions";
 import { DirectoryScreen } from "./components/DirectoryScreen";
 import { StartPointScreen } from "./components/StartPointScreen";
+import { ExploreScreen, type CategoryId } from "./components/ExploreScreen";
+import { ProfileScreen } from "./components/ProfileScreen";
+import { ReturnToCarScreen } from "./components/ReturnToCarScreen";
 import { HelpScreen } from "./components/HelpScreen";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
-import { Button, Card, ErrorState, SectionHeading } from "./components/ui/Primitives";
-import {
-  Accessibility as AccessibilityIcon,
-  Compass,
-  HelpCircle,
-  MapPinned,
-  Sparkles,
-  Users
-} from "lucide-react";
+import { ErrorState } from "./components/ui/Primitives";
 
 type Screen =
-  | "home"
+  | "map"
   | "schedule"
+  | "explore"
   | "alerts"
-  | "more"
-  | "destination"
+  | "profile"
   | "route-options"
   | "navigation"
   | "arrival"
@@ -71,7 +65,10 @@ type Screen =
   | "assistant"
   | "accessibility"
   | "help"
-  | "admin";
+  | "admin"
+  | "return-to-car";
+
+const PRIMARY_TABS: Screen[] = ["map", "schedule", "explore", "alerts", "profile"];
 
 interface SessionState {
   screen: Screen;
@@ -79,6 +76,8 @@ interface SessionState {
   startNodeId: string;
   activeBuildingId: string | null;
   activeDestinationTarget: DestinationTarget | null;
+  activeParkingLotId: string | null;
+  sheetExpanded: boolean;
   routeMode: RouteMode;
   activeEventId: string | null;
   navStepIndex: number;
@@ -89,11 +88,13 @@ interface SessionState {
 const SESSION_KEY = "beacon-campus-session";
 
 const DEFAULT_SESSION: SessionState = {
-  screen: "home",
-  activeTab: "home",
+  screen: "map",
+  activeTab: "map",
   startNodeId: DEFAULT_START_NODE_ID,
   activeBuildingId: null,
   activeDestinationTarget: null,
+  activeParkingLotId: null,
+  sheetExpanded: false,
   routeMode: "fastest",
   activeEventId: null,
   navStepIndex: 0,
@@ -117,8 +118,7 @@ function loadSession(): SessionState {
  * real wall clock) so the flagship Jordan/BIO101 story — and every other
  * leave-by calculation — always lines up sensibly regardless of when a demo
  * is actually run. The calendar date itself still tracks real time, so
- * dated events resolve correctly. See the spec's guidance to mock time
- * awareness where needed for the MVP.
+ * dated events resolve correctly.
  */
 function getDemoNow(): Date {
   const d = new Date();
@@ -158,6 +158,7 @@ export default function BeaconCampusApp() {
   const location = useLocationPermission();
   const { preferences, expiry, togglePreference, setPreferenceWithDuration } = usePreferences();
   const analytics = useAnalytics();
+  const { savedCar, rememberCar, clearCar } = useSavedCar();
 
   const [hasBegun, setHasBegun] = useState(false);
   const [persona, setPersona] = useState<Persona | null>(loadPersona);
@@ -183,6 +184,8 @@ export default function BeaconCampusApp() {
   }, [searchQuery]);
 
   const activeBuilding: Building | undefined = session.activeBuildingId ? getBuilding(campus, session.activeBuildingId) : undefined;
+  const activeParkingLot = session.activeParkingLotId ? campus.parkingLots.find((p) => p.id === session.activeParkingLotId) : undefined;
+  const savedCarLot = savedCar ? campus.parkingLots.find((p) => p.id === savedCar.lotId) : undefined;
 
   const activeRoutePreferences = useMemo(
     () => effectivePreferences(preferences, session.routeMode),
@@ -223,7 +226,31 @@ export default function BeaconCampusApp() {
   function goToDestination(target: DestinationTarget) {
     setSearchQuery("");
     analytics.trackDestinationView(target.buildingId);
-    patch({ screen: "destination", activeDestinationTarget: target, activeBuildingId: target.buildingId, routeMode: "fastest" });
+    patch({
+      screen: "map",
+      activeTab: "map",
+      activeDestinationTarget: target,
+      activeBuildingId: target.buildingId,
+      activeParkingLotId: null,
+      sheetExpanded: false,
+      routeMode: "fastest"
+    });
+  }
+
+  function selectParkingPin(lotId: string) {
+    setSearchQuery("");
+    patch({
+      screen: "map",
+      activeTab: "map",
+      activeParkingLotId: lotId,
+      activeDestinationTarget: null,
+      activeBuildingId: null,
+      sheetExpanded: false
+    });
+  }
+
+  function closeSheet() {
+    patch({ activeDestinationTarget: null, activeBuildingId: null, activeParkingLotId: null, sheetExpanded: false });
   }
 
   function handleSelectSearchResult(result: SearchResult) {
@@ -233,8 +260,7 @@ export default function BeaconCampusApp() {
       return;
     }
     if (result.kind === "parking") {
-      patch({ screen: "parking" });
-      setSearchQuery("");
+      selectParkingPin(result.id);
       return;
     }
     const target = destinationTargetFromSearchResult(campus, result);
@@ -248,6 +274,13 @@ export default function BeaconCampusApp() {
       activeBuildingId: route.buildingId ?? session.activeBuildingId,
       directoryFilter: route.directory ?? null
     });
+  }
+
+  function handleFindRestroom() {
+    const results = search(campus, "restroom", 1);
+    if (results.length === 0) return;
+    const target = destinationTargetFromSearchResult(campus, results[0]);
+    if (target) goToDestination(target);
   }
 
   function startRoute() {
@@ -264,10 +297,12 @@ export default function BeaconCampusApp() {
 
   function doneArrival() {
     patch({
-      screen: "home",
-      activeTab: "home",
+      screen: "map",
+      activeTab: "map",
       startNodeId: session.activeDestinationTarget?.buildingId ?? session.startNodeId,
-      activeDestinationTarget: null
+      activeDestinationTarget: null,
+      activeParkingLotId: null,
+      sheetExpanded: false
     });
   }
 
@@ -296,6 +331,15 @@ export default function BeaconCampusApp() {
     setOnboardingSeen(true);
   }
 
+  function handleWalkToCar() {
+    if (savedCar) patch({ screen: "return-to-car" });
+  }
+
+  function handleForgetCar() {
+    clearCar();
+    if (session.screen === "return-to-car") patch({ screen: "map", activeTab: "map" });
+  }
+
   if (!hasBegun) {
     return (
       <div className="h-full w-full">
@@ -312,68 +356,83 @@ export default function BeaconCampusApp() {
     );
   }
 
-  const hideTabs = (["destination", "route-options", "navigation", "arrival", "admin"] as Screen[]).includes(session.screen);
-  const showBack = session.screen !== "home" && session.screen !== "more";
+  const hideTabs = (["route-options", "navigation", "arrival", "admin", "return-to-car"] as Screen[]).includes(session.screen);
+  const isMap = session.screen === "map";
+  const showBack = !PRIMARY_TABS.includes(session.screen);
 
   return (
     <MobileAppShell
       activeTab={session.activeTab}
       onTabChange={(tab: TabId) => {
-        if (tab === "home" || tab === "search") patch({ screen: "home", activeTab: tab });
-        else if (tab === "schedule") patch({ screen: "schedule", activeTab: tab });
+        if (tab === "map") patch({ screen: "map", activeTab: tab });
+        else if (tab === "myday") patch({ screen: "schedule", activeTab: tab });
+        else if (tab === "explore") patch({ screen: "explore", activeTab: tab });
         else if (tab === "alerts") patch({ screen: "alerts", activeTab: tab });
-        else patch({ screen: "more", activeTab: tab });
+        else patch({ screen: "profile", activeTab: tab });
       }}
       alertCount={unreadCount}
       hideTabs={hideTabs}
+      hideHeader={isMap}
+      fullBleed={isMap}
       title={screenTitle(session.screen)}
       subtitle={campus.universityName}
-      onBack={showBack ? () => patch({ screen: previousScreenFor(session.screen), activeTab: "home" }) : undefined}
+      onBack={showBack ? () => patch({ screen: previousScreenFor(session.screen), activeTab: "map" }) : undefined}
       onAssistant={() => patch({ screen: "assistant" })}
       onAdmin={() => patch({ screen: "admin" })}
     >
-      <div key={session.screen} className="animate-screen-in">
-      {location.status === "unknown" && !session.locationPromptDismissed && session.screen === "home" && (
-        <div className="mb-4">
-          <LocationPermissionPrompt
-            onAllow={() => {
-              location.requestLocation();
-              patch({ locationPromptDismissed: true });
-            }}
-            onDecline={() => {
-              location.declineLocation();
-              patch({ locationPromptDismissed: true });
-            }}
-          />
-        </div>
-      )}
-
-      {session.screen === "home" && (
-        <HomeScreen
+      <div key={session.screen} className={isMap ? "h-full" : "animate-screen-in"}>
+      {session.screen === "map" && (
+        <MapScreen
           campus={campus}
-          persona={persona}
-          now={now}
           startNodeId={session.startNodeId}
           startPointLabel={startPointLabel(campus, session.startNodeId)}
           onChangeStartPoint={() => patch({ screen: "start-point" })}
-          nearCampus={location.nearCampus}
           preferences={preferences}
+          onToggleAccessibleRoute={() => {
+            togglePreference("stepFree");
+            analytics.trackPreferenceToggle("stepFree");
+          }}
+          onFindRestroom={handleFindRestroom}
+          onOpenParkingList={() => patch({ screen: "parking" })}
+          onOpenEmergency={() => openBuilding("public-safety")}
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
           searchResults={searchResults}
           onSelectSearchResult={handleSelectSearchResult}
-          onSelectCategory={handleSelectCategory}
-          onSelectBuilding={(id) => openBuilding(id)}
-          onStartClassNav={handleStartClassNav}
-          onOpenAlerts={() => patch({ screen: "alerts", activeTab: "alerts" })}
-          onOpenEvent={(eventId) => patch({ screen: "event-detail", activeEventId: eventId })}
+          savedCar={savedCar}
+          savedCarLot={savedCarLot}
+          onOpenReturnToCar={handleWalkToCar}
+          destinationIntel={destinationIntel}
+          sheetExpanded={session.sheetExpanded}
+          onToggleSheetExpanded={() => patch({ sheetExpanded: !session.sheetExpanded })}
+          onCloseSheet={closeSheet}
+          onSelectBuilding={(id) => goToDestination({ buildingId: id })}
+          onStartRoute={startRoute}
+          onViewBuildingDetails={() => destinationIntel && openBuilding(destinationIntel.buildingId)}
+          activeParkingLot={activeParkingLot}
+          onSelectParkingPin={selectParkingPin}
+          onRememberCarHere={(lotId) => rememberCar(lotId)}
+          locationPrompt={
+            location.status === "unknown" && !session.locationPromptDismissed
+              ? {
+                  onAllow: () => {
+                    location.requestLocation();
+                    patch({ locationPromptDismissed: true });
+                  },
+                  onDecline: () => {
+                    location.declineLocation();
+                    patch({ locationPromptDismissed: true });
+                  }
+                }
+              : null
+          }
         />
       )}
 
       {session.screen === "start-point" && (
         <StartPointScreen
           currentStartNodeId={session.startNodeId}
-          onSelect={(nodeId) => patch({ screen: "home", activeTab: "home", startNodeId: nodeId })}
+          onSelect={(nodeId) => patch({ screen: "map", activeTab: "map", startNodeId: nodeId })}
         />
       )}
 
@@ -387,22 +446,41 @@ export default function BeaconCampusApp() {
         />
       )}
 
+      {session.screen === "explore" && (
+        <ExploreScreen campus={campus} onSelectCategory={handleSelectCategory} onNavigate={(screen) => patch({ screen })} />
+      )}
+
       {session.screen === "alerts" && <AlertsCenter campus={campus} onSelectBuilding={(id) => openBuilding(id)} />}
 
-      {session.screen === "more" && <MoreMenu onNavigate={(screen) => patch({ screen })} />}
+      {session.screen === "profile" && (
+        <ProfileScreen
+          campus={campus}
+          persona={persona}
+          startPointLabel={startPointLabel(campus, session.startNodeId)}
+          onChangeStartPoint={() => patch({ screen: "start-point" })}
+          savedCar={savedCar}
+          savedCarLot={savedCarLot}
+          onWalkToCar={handleWalkToCar}
+          onForgetCar={handleForgetCar}
+          onOpenAccessibility={() => patch({ screen: "accessibility" })}
+          onOpenAdmin={() => patch({ screen: "admin" })}
+          onOpenHelp={() => patch({ screen: "help" })}
+        />
+      )}
 
-      {session.screen === "destination" &&
-        (destinationIntel ? (
-          <DestinationCard
-            intel={destinationIntel}
+      {session.screen === "return-to-car" &&
+        (savedCar ? (
+          <ReturnToCarScreen
             campus={campus}
+            lotId={savedCar.lotId}
+            note={savedCar.note}
             startNodeId={session.startNodeId}
-            onStartRoute={startRoute}
-            onViewBuilding={() => openBuilding(destinationIntel.buildingId)}
-            onViewParking={() => patch({ screen: "parking" })}
+            preferences={preferences}
+            onDone={() => patch({ screen: "map", activeTab: "map" })}
+            onForgetCar={handleForgetCar}
           />
         ) : (
-          <ErrorState title="Route unavailable" message="We couldn't find a route to this destination right now." />
+          <ErrorState title="No car saved" message="Remember My Car from a parking lot on the map first." />
         ))}
 
       {session.screen === "route-options" &&
@@ -472,7 +550,9 @@ export default function BeaconCampusApp() {
         />
       )}
 
-      {session.screen === "parking" && <ParkingScreen campus={campus} />}
+      {session.screen === "parking" && (
+        <ParkingScreen campus={campus} savedCarLotId={savedCar?.lotId} onRememberCarHere={(lotId) => rememberCar(lotId)} />
+      )}
 
       {session.screen === "services" && (
         <ServicesDirectory campus={campus} onSelectService={(s) => goToDestination({ buildingId: s.buildingId, title: s.name, eligibility: "visitor" })} />
@@ -518,33 +598,29 @@ export default function BeaconCampusApp() {
 
 function previousScreenFor(screen: Screen): Screen {
   const backMap: Partial<Record<Screen, Screen>> = {
-    destination: "home",
-    "route-options": "destination",
+    "route-options": "map",
     navigation: "route-options",
-    arrival: "home",
-    building: "home",
-    directory: "home",
-    "start-point": "home",
-    parking: "home",
-    services: "home",
-    events: "more",
+    arrival: "map",
+    building: "map",
+    directory: "map",
+    "start-point": "map",
+    parking: "map",
+    services: "map",
+    events: "explore",
     "event-detail": "events",
-    orientation: "more",
-    tour: "more",
-    assistant: "home",
-    accessibility: "more",
-    help: "more",
-    admin: "home"
+    orientation: "explore",
+    tour: "explore",
+    assistant: "map",
+    accessibility: "explore",
+    help: "explore",
+    admin: "map",
+    "return-to-car": "map"
   };
-  return backMap[screen] ?? "home";
+  return backMap[screen] ?? "map";
 }
 
 function screenTitle(screen: Screen): string | undefined {
   const titles: Partial<Record<Screen, string>> = {
-    schedule: "Schedule",
-    alerts: "Alerts",
-    more: "More",
-    destination: "Destination",
     "start-point": "Starting Point",
     "route-options": "Choose Route",
     navigation: "Directions",
@@ -558,42 +634,8 @@ function screenTitle(screen: Screen): string | undefined {
     assistant: "Beacon Assistant",
     accessibility: "Accessibility",
     help: "Help",
-    admin: "Admin Preview"
+    admin: "Admin Preview",
+    "return-to-car": "My Car"
   };
   return titles[screen];
-}
-
-function MoreMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
-  const items: { screen: Screen; label: string; description: string; icon: typeof Compass }[] = [
-    { screen: "events", label: "Events", description: "Campus events and arrival guidance", icon: Sparkles },
-    { screen: "orientation", label: "Orientation Mode", description: "New student welcome & first-day checklist", icon: Users },
-    { screen: "tour", label: "Campus Tour", description: "Self-guided walking tour", icon: MapPinned },
-    { screen: "accessibility", label: "Accessibility", description: "Step-free routing & accessible entrances", icon: AccessibilityIcon },
-    { screen: "assistant", label: "Ask Beacon", description: "Quick answers to common questions", icon: Compass },
-    { screen: "help", label: "Help", description: "How to use Beacon Campus", icon: HelpCircle }
-  ];
-  return (
-    <div className="flex flex-col gap-4">
-      <SectionHeading title="More" />
-      <div className="flex flex-col gap-2.5">
-        {items.map((item) => {
-          const Icon = item.icon;
-          return (
-            <button key={item.screen} type="button" onClick={() => onNavigate(item.screen)} className="text-left">
-              <Card className="flex items-center gap-3">
-                <Icon size={18} className="text-campus-gold" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-semibold text-white">{item.label}</p>
-                  <p className="text-xs text-white/55">{item.description}</p>
-                </div>
-              </Card>
-            </button>
-          );
-        })}
-      </div>
-      <Button tone="ghost" onClick={() => onNavigate("home")} className="text-white/50">
-        Back to Home
-      </Button>
-    </div>
-  );
 }
