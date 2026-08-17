@@ -4,8 +4,8 @@ import { cx } from "../ui/Primitives";
 export type TabId = "map" | "myday" | "explore" | "alerts" | "profile";
 
 const TABS: { id: TabId; label: string; icon: typeof MapIcon }[] = [
-  { id: "map", label: "Map", icon: MapIcon },
   { id: "myday", label: "My Day", icon: Calendar },
+  { id: "map", label: "Map", icon: MapIcon },
   { id: "explore", label: "Explore", icon: Compass },
   { id: "alerts", label: "Alerts", icon: Bell },
   { id: "profile", label: "Profile", icon: User }

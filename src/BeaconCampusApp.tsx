@@ -89,8 +89,8 @@ interface SessionState {
 const SESSION_KEY = "beacon-campus-session";
 
 const DEFAULT_SESSION: SessionState = {
-  screen: "map",
-  activeTab: "map",
+  screen: "schedule",
+  activeTab: "myday",
   startNodeId: DEFAULT_START_NODE_ID,
   activeBuildingId: null,
   activeDestinationTarget: null,
