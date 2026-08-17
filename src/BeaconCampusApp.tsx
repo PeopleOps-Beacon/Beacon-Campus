@@ -342,7 +342,7 @@ export default function BeaconCampusApp() {
 
   if (!hasBegun) {
     return (
-      <div className="h-full w-full">
+      <div className="flex h-full w-full flex-1 flex-col">
         <LandingScreen onBegin={() => setHasBegun(true)} />
       </div>
     );
@@ -350,7 +350,7 @@ export default function BeaconCampusApp() {
 
   if (!onboardingSeen) {
     return (
-      <div className="h-full w-full">
+      <div className="flex h-full w-full flex-1 flex-col overflow-y-auto">
         <Onboarding onSelect={handlePersonaSelect} onSkip={skipOnboarding} />
       </div>
     );

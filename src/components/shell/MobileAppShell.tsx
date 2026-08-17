@@ -33,7 +33,7 @@ export function MobileAppShell({
   children: ReactNode;
 }) {
   return (
-    <div className="flex h-full w-full flex-col bg-campus-ink">
+    <div className="flex h-full w-full flex-1 flex-col bg-campus-ink">
       {!hideHeader && (
         <header className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="flex min-w-0 items-center gap-2">

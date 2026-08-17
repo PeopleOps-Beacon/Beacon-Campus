@@ -2,7 +2,7 @@ import beaconEmblem from "../assets/beacon-emblem.png";
 
 export function LandingScreen({ onBegin }: { onBegin: () => void }) {
   return (
-    <div className="relative flex h-full flex-col items-center justify-between overflow-hidden bg-campus-ink px-8 pb-12 pt-[max(3rem,env(safe-area-inset-top))]">
+    <div className="relative flex h-full min-h-0 flex-1 flex-col items-center justify-between overflow-hidden bg-campus-ink px-8 pb-12 pt-[max(3rem,env(safe-area-inset-top))]">
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-full opacity-90"
         style={{ background: "radial-gradient(55% 40% at 50% 32%, rgba(245,183,47,0.16), transparent 70%)" }}
