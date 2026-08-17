@@ -29,8 +29,11 @@ export function LandingScreen({ onBegin }: { onBegin: () => void }) {
 
       <div className="relative flex w-full flex-col items-center gap-9">
         <p className="max-w-[280px] text-base leading-relaxed text-white">
-          Every <span className="text-campus-gold">Journey</span>. Every <span className="text-campus-gold">Ability</span>. Every{" "}
-          <span className="text-campus-gold">Traveler</span>.
+          Every <span className="text-campus-gold">Journey</span>
+          <br />
+          Every <span className="text-campus-gold">Ability</span>
+          <br />
+          Every <span className="text-campus-gold">Traveler</span>
         </p>
 
         <button
