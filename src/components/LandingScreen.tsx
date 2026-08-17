@@ -1,4 +1,4 @@
-import { BeaconLogo } from "./ui/BeaconLogo";
+import beaconLogoFull from "../assets/beacon-logo-full.png";
 
 export function LandingScreen({ onBegin }: { onBegin: () => void }) {
   return (
@@ -12,11 +12,13 @@ export function LandingScreen({ onBegin }: { onBegin: () => void }) {
       <div />
 
       <div className="relative flex flex-col items-center text-center">
-        <div className="mb-7 rounded-[28%] shadow-[0_20px_60px_-10px_rgba(245,183,47,0.35)]">
-          <BeaconLogo size={92} />
-        </div>
-        <h1 className="text-[2.5rem] font-bold leading-none tracking-tight text-white">Beacon Campus</h1>
-        <p className="mt-3 max-w-[280px] text-[15px] leading-relaxed text-white/55">
+        <img
+          src={beaconLogoFull}
+          alt="Beacon"
+          className="w-[280px] max-w-full drop-shadow-[0_20px_60px_rgba(245,183,47,0.3)]"
+        />
+        <p className="-mt-2 text-lg font-semibold uppercase tracking-[0.35em] text-campus-gold">Campus</p>
+        <p className="mt-4 max-w-[280px] text-[15px] leading-relaxed text-white/55">
           Know where you are. Know where you're going.
         </p>
       </div>
