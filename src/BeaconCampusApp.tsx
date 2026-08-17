@@ -196,8 +196,6 @@ export default function BeaconCampusApp() {
     });
   }, [campus, session.activeDestinationTarget, session.startNodeId, activeRoutePreferences, now]);
 
-  const routePathIds = routePlan?.path ?? [];
-
   const activeEvent: CampusEvent | undefined = session.activeEventId ? campus.events.find((e) => e.id === session.activeEventId) : undefined;
 
   const { unreadCount, markAllRead } = useNotificationRead(campus);
@@ -407,8 +405,6 @@ export default function BeaconCampusApp() {
             plan={routePlan}
             campus={campus}
             stepIndex={session.navStepIndex}
-            routePath={routePathIds}
-            startNodeId={session.startNodeId}
             audioGuidance={preferences.audioGuidance}
             onNextStep={() => patch({ navStepIndex: session.navStepIndex + 1 })}
             onPrevStep={() => patch({ navStepIndex: Math.max(0, session.navStepIndex - 1) })}

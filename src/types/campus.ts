@@ -375,6 +375,8 @@ export interface GuidanceStep {
   instruction: string;
   category: StepCategory;
   minutesFromStart: number;
+  /** Path node or building id this step is "at" — drives the per-step location illustration. */
+  locationId?: string;
 }
 
 export interface RoutePlan {

@@ -428,7 +428,8 @@ export function getGuidanceSteps(
       order: order++,
       instruction: alert?.message ?? `A usual entrance is closed — this route uses the ${intel.recommendedEntrance.label} instead.`,
       category: "advisory",
-      minutesFromStart
+      minutesFromStart,
+      locationId: intel.buildingId
     });
   }
 
@@ -458,14 +459,16 @@ export function getGuidanceSteps(
         order: order++,
         instruction: simplified ? `${intel.building.name} is just ahead.` : `${intel.building.name} will be just ahead.`,
         category: "landmark",
-        minutesFromStart: Math.round(minutesFromStart)
+        minutesFromStart: Math.round(minutesFromStart),
+        locationId: intel.buildingId
       });
       steps.push({
         id: `step-${order}`,
         order: order++,
         instruction: simplified ? `Go in the ${intel.recommendedEntrance.label.toLowerCase()}.` : `Use the ${intel.recommendedEntrance.label.toLowerCase()}.`,
         category: "direction",
-        minutesFromStart: Math.round(minutesFromStart)
+        minutesFromStart: Math.round(minutesFromStart),
+        locationId: intel.buildingId
       });
     } else if (opts.waypoint && nodeId === opts.waypoint.building.id) {
       steps.push({
@@ -473,7 +476,8 @@ export function getGuidanceSteps(
         order: order++,
         instruction: opts.waypoint.note,
         category: "accessibility",
-        minutesFromStart: Math.round(minutesFromStart)
+        minutesFromStart: Math.round(minutesFromStart),
+        locationId: opts.waypoint.building.id
       });
     } else if (node?.isLandmark) {
       const verb = i === 1 ? "Head toward" : "Continue past";
@@ -482,7 +486,8 @@ export function getGuidanceSteps(
         order: order++,
         instruction: simplified ? `Pass ${node.label}.` : `${verb} ${node.label}.`,
         category: "landmark",
-        minutesFromStart: Math.round(minutesFromStart)
+        minutesFromStart: Math.round(minutesFromStart),
+        locationId: nodeId
       });
     }
   }
@@ -494,7 +499,8 @@ export function getGuidanceSteps(
       order: insertAt,
       instruction: reassuranceMessageFor(intel.building.id),
       category: "reassurance",
-      minutesFromStart: steps[insertAt - 1]?.minutesFromStart ?? 0
+      minutesFromStart: steps[insertAt - 1]?.minutesFromStart ?? 0,
+      locationId: steps[insertAt - 1]?.locationId
     });
     steps.forEach((s, i) => (s.order = i));
   }
@@ -504,7 +510,8 @@ export function getGuidanceSteps(
     order: steps.length,
     instruction: arrivalMessage(intel, simplified),
     category: "arrival",
-    minutesFromStart: intel.walkMinutes
+    minutesFromStart: intel.walkMinutes,
+    locationId: intel.buildingId
   });
 
   return steps;

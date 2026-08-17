@@ -2,8 +2,13 @@ import { useEffect } from "react";
 import { AlertTriangle, Compass, DoorOpen, Heart, MapPin, MapPinned } from "lucide-react";
 import { speak } from "../lib/speech";
 import type { Campus, RoutePlan, StepCategory } from "../types/campus";
-import { CampusMap } from "./CampusMap";
+import { LocationIllustration } from "./LocationIllustration";
 import { Button, Card, cx } from "./ui/Primitives";
+
+function locationLabel(campus: Campus, locationId?: string): string | undefined {
+  if (!locationId) return undefined;
+  return campus.buildings.find((b) => b.id === locationId)?.name ?? campus.pathNodes.find((n) => n.id === locationId)?.label;
+}
 
 const CATEGORY_ICON: Record<StepCategory, typeof Compass> = {
   direction: DoorOpen,
@@ -18,8 +23,6 @@ export function NavigationScreen({
   plan,
   campus,
   stepIndex,
-  routePath,
-  startNodeId,
   audioGuidance,
   onNextStep,
   onPrevStep,
@@ -28,8 +31,6 @@ export function NavigationScreen({
   plan: RoutePlan;
   campus: Campus;
   stepIndex: number;
-  routePath: string[];
-  startNodeId: string;
   audioGuidance: boolean;
   onNextStep: () => void;
   onPrevStep: () => void;
@@ -44,9 +45,18 @@ export function NavigationScreen({
     if (audioGuidance && current) speak(current.instruction);
   }, [audioGuidance, current]);
 
+  const currentLabel = locationLabel(campus, current?.locationId);
+
   return (
     <div className="flex flex-col gap-5">
-      <CampusMap campus={campus} highlightBuildingId={plan.destination.buildingId} routePath={routePath} startNodeId={startNodeId} height={200} />
+      <div className="relative overflow-hidden rounded-[var(--radius-card)]">
+        <LocationIllustration campus={campus} locationId={current?.locationId} height={200} className="w-full" />
+        {currentLabel && (
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-2 pt-6">
+            <p className="text-xs font-semibold uppercase tracking-wide text-white/85">{currentLabel}</p>
+          </div>
+        )}
+      </div>
 
       <div className="flex items-center justify-between text-sm text-white/60">
         <span>
