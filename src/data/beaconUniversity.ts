@@ -21,9 +21,9 @@ import type {
 const buildings: Building[] = [
   {
     id: "richardson",
-    name: "Richardson Science Hall",
-    abbreviation: "RH",
-    aliases: ["richardson", "richardson hall", "science hall", "science building", "rh", "chem lab", "chemistry lab"],
+    name: "Long Hall",
+    abbreviation: "LH",
+    aliases: ["long hall", "richardson", "science hall", "science building", "life sciences", "lh", "chem lab", "chemistry lab"],
     category: "academic",
     description:
       "Home to biology, chemistry, and physics labs, lecture halls, and the Science Tutoring Center.",
@@ -54,14 +54,14 @@ const buildings: Building[] = [
     ],
     hours: { opens: "07:00", closes: "22:00" },
     nearbyParkingIds: ["lot-d", "lot-c"],
-    landmarkNote: "Past Hamilton Library, on the north side of the Green",
+    landmarkNote: "Past Cooper Library, on the north side of Bowman Field",
     photoTone: "stone"
   },
   {
     id: "jefferson",
-    name: "Jefferson Academic Center",
-    abbreviation: "JAC",
-    aliases: ["jefferson", "jefferson center", "jac", "academic center", "english 101"],
+    name: "Strode Tower",
+    abbreviation: "ST",
+    aliases: ["strode tower", "strode", "jefferson", "academic center", "st", "english 101"],
     category: "academic",
     description: "General-education classrooms, seminar rooms, and the English & Humanities Department.",
     address: "140 University Parkway",
@@ -82,14 +82,14 @@ const buildings: Building[] = [
     ],
     hours: { opens: "07:00", closes: "21:00" },
     nearbyParkingIds: ["lot-d"],
-    landmarkNote: "On the North Academic Quad, next to the Fine Arts Center",
+    landmarkNote: "On the North Academic Quad, next to the Brooks Center",
     photoTone: "brick"
   },
   {
     id: "student-union",
-    name: "Beacon Student Union",
-    abbreviation: "BSU",
-    aliases: ["student union", "the union", "bsu", "union", "bookstore", "career services"],
+    name: "Hendrix Student Center",
+    abbreviation: "HSC",
+    aliases: ["hendrix", "hendrix student center", "student union", "student center", "the union", "hsc", "union", "bookstore", "career services"],
     category: "student-life",
     description: "The social hub of campus — dining, the bookstore, career services, and student organization space.",
     address: "1 Beacon Way",
@@ -121,9 +121,9 @@ const buildings: Building[] = [
   },
   {
     id: "library",
-    name: "Hamilton Library",
-    abbreviation: "HL",
-    aliases: ["library", "hamilton library", "hl", "the library", "testing center", "it help desk"],
+    name: "Cooper Library",
+    abbreviation: "CL",
+    aliases: ["cooper library", "cooper", "library", "hamilton library", "cl", "the library", "testing center", "it help desk"],
     category: "library",
     description: "The university library, quiet study floors, group study rooms, and the IT Help Desk.",
     address: "88 Hamilton Court",
@@ -146,14 +146,14 @@ const buildings: Building[] = [
     ],
     hours: { opens: "07:00", closes: "01:00", note: "Extended hours during finals week" },
     nearbyParkingIds: ["lot-e"],
-    landmarkNote: "The tall building with the glass reading room, just west of the Green",
+    landmarkNote: "The tall building with the glass reading room, just west of Bowman Field",
     photoTone: "stone"
   },
   {
     id: "founders",
-    name: "Founders Administration Building",
-    abbreviation: "FAB",
-    aliases: ["founders", "founders hall", "administration building", "fab", "financial aid", "registrar", "advising"],
+    name: "Sikes Hall",
+    abbreviation: "SH",
+    aliases: ["sikes hall", "sikes", "founders", "administration building", "sh", "financial aid", "registrar", "advising"],
     category: "administration",
     description: "Financial Aid, the Registrar, and Academic Advising all under one roof.",
     address: "300 Founders Circle",
@@ -182,16 +182,16 @@ const buildings: Building[] = [
     ],
     hours: { opens: "08:00", closes: "17:00" },
     nearbyParkingIds: ["lot-a", "lot-d"],
-    landmarkNote: "The stone building south of the Green, past the Student Union",
+    landmarkNote: "The stone building south of Bowman Field, past Hendrix Student Center",
     photoTone: "stone"
   },
   {
     id: "admissions",
-    name: "Admissions and Welcome Center",
-    abbreviation: "AWC",
-    aliases: ["admissions", "welcome center", "awc", "admissions office", "campus tours", "visitor check-in"],
+    name: "Old Main",
+    abbreviation: "OM",
+    aliases: ["old main", "admissions", "welcome center", "om", "admissions office", "campus tours", "visitor check-in"],
     category: "administration",
-    description: "The first stop for prospective students and campus visitors — tours start here.",
+    description: "Beacon University's historic clock-tower building — the first stop for prospective students and campus visitors, where tours start.",
     address: "20 Welcome Plaza",
     point: { x: 330, y: 605 },
     floors: 1,
@@ -210,14 +210,14 @@ const buildings: Building[] = [
     ],
     hours: { opens: "08:30", closes: "17:00" },
     nearbyParkingIds: ["lot-a"],
-    landmarkNote: "The glass building near the south campus entrance, next to Visitor Lot A",
-    photoTone: "glass"
+    landmarkNote: "The clock-tower building near the south campus entrance, next to Visitor Lot A",
+    photoTone: "stone"
   },
   {
     id: "veterans",
-    name: "Veterans Resource Center",
-    abbreviation: "VRC",
-    aliases: ["veterans", "veterans resource center", "vrc", "veterans office", "military services"],
+    name: "Military Heritage House",
+    abbreviation: "MHH",
+    aliases: ["military heritage house", "veterans", "veterans resource center", "mhh", "veterans office", "military services"],
     category: "student-life",
     description: "Support, community space, and benefits guidance for veteran and military-connected students.",
     address: "45 Union Walk",
@@ -234,14 +234,14 @@ const buildings: Building[] = [
     ],
     hours: { opens: "08:00", closes: "18:00" },
     nearbyParkingIds: ["lot-e"],
-    landmarkNote: "East of the Student Union, along Union Walk",
+    landmarkNote: "East of Hendrix Student Center, along Union Walk",
     photoTone: "brick"
   },
   {
     id: "health-center",
-    name: "Campus Health Center",
-    abbreviation: "CHC",
-    aliases: ["health center", "campus health", "clinic", "chc", "counseling"],
+    name: "Redfern Health Center",
+    abbreviation: "RHC",
+    aliases: ["redfern", "redfern health center", "health center", "campus health", "clinic", "rhc", "counseling"],
     category: "health-safety",
     description: "Student medical care, counseling services, and wellness resources.",
     address: "60 Wellness Drive",
@@ -261,12 +261,12 @@ const buildings: Building[] = [
     ],
     hours: { opens: "08:00", closes: "18:00", note: "Urgent care until 8 PM weekdays" },
     nearbyParkingIds: ["lot-e"],
-    landmarkNote: "East side of campus, past the Veterans Resource Center",
+    landmarkNote: "East side of campus, past Military Heritage House",
     photoTone: "glass"
   },
   {
     id: "public-safety",
-    name: "Public Safety",
+    name: "Edgar Public Safety Building",
     abbreviation: "PS",
     aliases: ["campus police", "public safety", "police", "security", "emergency"],
     category: "health-safety",
@@ -287,11 +287,11 @@ const buildings: Building[] = [
   },
   {
     id: "oak",
-    name: "Oak Residence Hall",
-    abbreviation: "ORH",
-    aliases: ["oak hall", "oak residence", "oak dorm", "housing", "residence life"],
+    name: "Johnstone Hall",
+    abbreviation: "JH",
+    aliases: ["johnstone hall", "johnstone", "oak hall", "jh", "housing", "residence life"],
     category: "residence",
-    description: "First-year residence hall on the west side of campus, near the Dining Commons.",
+    description: "First-year residence hall on the west side of campus, near the dining hall.",
     address: "10 Oak Row",
     point: { x: 190, y: 240 },
     floors: 4,
@@ -315,9 +315,9 @@ const buildings: Building[] = [
   },
   {
     id: "pine",
-    name: "Pine Residence Hall",
-    abbreviation: "PRH",
-    aliases: ["pine hall", "pine residence", "pine dorm"],
+    name: "Manning Hall",
+    abbreviation: "MH",
+    aliases: ["manning hall", "manning", "pine hall", "mh", "pine dorm"],
     category: "residence",
     description: "Upper-class residence hall on the west side of campus.",
     address: "12 Oak Row",
@@ -342,9 +342,9 @@ const buildings: Building[] = [
   },
   {
     id: "dining-commons",
-    name: "Beacon Dining Commons",
-    abbreviation: "BDC",
-    aliases: ["dining hall", "dining commons", "cafeteria", "food court", "dining"],
+    name: "Schilletter Dining Hall",
+    abbreviation: "SDH",
+    aliases: ["schilletter", "schilletter dining hall", "dining hall", "dining commons", "cafeteria", "food court", "sdh", "dining"],
     category: "dining",
     description: "The main all-you-care-to-eat dining hall, open for breakfast, lunch, and dinner.",
     address: "8 Commons Lane",
@@ -361,14 +361,14 @@ const buildings: Building[] = [
     ],
     hours: { opens: "07:00", closes: "21:00", note: "Breakfast, lunch, and dinner service" },
     nearbyParkingIds: ["lot-c"],
-    landmarkNote: "Between the residence halls and the Green",
+    landmarkNote: "Between the residence halls and Bowman Field",
     photoTone: "glass"
   },
   {
     id: "athletics-center",
-    name: "Athletics Center",
-    abbreviation: "BAC",
-    aliases: ["athletics center", "gym", "basketball arena", "rec center", "fitness center"],
+    name: "Littlejohn Coliseum",
+    abbreviation: "LJC",
+    aliases: ["littlejohn", "littlejohn coliseum", "athletics center", "gym", "basketball arena", "ljc", "rec center", "fitness center", "fike"],
     category: "athletics",
     description: "The basketball arena, recreation and fitness center, and athletics offices.",
     address: "1 Champion Way",
@@ -385,16 +385,16 @@ const buildings: Building[] = [
     ],
     hours: { opens: "06:00", closes: "23:00" },
     nearbyParkingIds: ["lot-b", "lot-d"],
-    landmarkNote: "Southeast corner of campus, next to University Stadium",
+    landmarkNote: "Southeast corner of campus, next to Memorial Stadium",
     photoTone: "glass"
   },
   {
     id: "stadium",
-    name: "University Stadium",
+    name: "Memorial Stadium",
     abbreviation: "STAD",
-    aliases: ["stadium", "football stadium", "game day"],
+    aliases: ["memorial stadium", "death valley", "stadium", "football stadium", "game day"],
     category: "athletics",
-    description: "Home of Beacon University football and large campus ceremonies like Commencement.",
+    description: "Known to students as \"Death Valley\" — home of Beacon University football and large campus ceremonies like Commencement.",
     address: "2 Champion Way",
     point: { x: 860, y: 650 },
     floors: 1,
@@ -409,14 +409,14 @@ const buildings: Building[] = [
     ],
     hours: { opens: "00:00", closes: "23:59", note: "Open on event days only" },
     nearbyParkingIds: ["lot-b"],
-    landmarkNote: "Far southeast corner of campus, past the Athletics Center",
+    landmarkNote: "Far southeast corner of campus, past Littlejohn Coliseum",
     photoTone: "stone"
   },
   {
     id: "fine-arts",
-    name: "Fine Arts Center",
-    abbreviation: "FAC",
-    aliases: ["fine arts center", "fine arts", "theatre", "art building", "history 210"],
+    name: "Brooks Center for the Performing Arts",
+    abbreviation: "BC",
+    aliases: ["brooks center", "brooks", "fine arts center", "fine arts", "theatre", "art building", "bc", "history 210"],
     category: "arts",
     description: "Theatre, galleries, music rehearsal space, and the Fine & Performing Arts Department.",
     address: "75 Gallery Row",
@@ -437,7 +437,7 @@ const buildings: Building[] = [
     ],
     hours: { opens: "08:00", closes: "22:00" },
     nearbyParkingIds: ["lot-d"],
-    landmarkNote: "North Academic Quad, next to Jefferson Academic Center",
+    landmarkNote: "North Academic Quad, next to Strode Tower",
     photoTone: "stone"
   }
 ];
@@ -466,7 +466,7 @@ const parkingLots: ParkingLot[] = [
     permitRequired: false,
     freeMinutes: 120,
     accessibleSpaces: 4,
-    notes: "Closest visitor lot to the Athletics Center and University Stadium.",
+    notes: "Closest visitor lot to Littlejohn Coliseum and Memorial Stadium.",
     walkTimeMinutesTo: { "athletics-center": 3, stadium: 6 },
     closed: true,
     closureReason: "Closed today for event setup"
@@ -499,7 +499,7 @@ const parkingLots: ParkingLot[] = [
     permitRequired: false,
     freeMinutes: 60,
     accessibleSpaces: 5,
-    notes: "Best option near the Student Union, Hamilton Library, and Veterans Resource Center.",
+    notes: "Best option near Hendrix Student Center, Cooper Library, and Military Heritage House.",
     walkTimeMinutesTo: { "student-union": 3, library: 4, veterans: 2, "health-center": 4 }
   }
 ];
@@ -509,16 +509,16 @@ const parkingLots: ParkingLot[] = [
 // ---------------------------------------------------------------------------
 
 const landmarkNodes: WalkingPathNode[] = [
-  { id: "green", label: "Campus Green", point: { x: 500, y: 360 }, isLandmark: true },
-  { id: "library-plaza", label: "Hamilton Library Plaza", point: { x: 430, y: 300 }, isLandmark: true },
-  { id: "union-plaza", label: "Student Union Plaza", point: { x: 500, y: 440 }, isLandmark: true },
+  { id: "green", label: "Bowman Field", point: { x: 500, y: 360 }, isLandmark: true },
+  { id: "library-plaza", label: "Cooper Library Plaza", point: { x: 430, y: 300 }, isLandmark: true },
+  { id: "union-plaza", label: "Hendrix Plaza", point: { x: 500, y: 440 }, isLandmark: true },
   { id: "dorm-row", label: "Dorm Row Walk", point: { x: 230, y: 320 }, isLandmark: true },
   { id: "admin-walk", label: "Administration Walk", point: { x: 480, y: 580 }, isLandmark: true },
   { id: "south-gate", label: "South Campus Gate", point: { x: 360, y: 615 }, isLandmark: true },
   { id: "east-walk", label: "East Campus Walk", point: { x: 700, y: 380 }, isLandmark: true },
   { id: "athletics-walk", label: "Athletics Way", point: { x: 760, y: 560 }, isLandmark: true },
   { id: "north-quad", label: "North Academic Quad", point: { x: 560, y: 230 }, isLandmark: true },
-  { id: "garden-walk", label: "Reflection Garden", point: { x: 420, y: 400 }, isLandmark: true }
+  { id: "garden-walk", label: "Reflection Pond", point: { x: 420, y: 400 }, isLandmark: true }
 ];
 
 const buildingNodes: WalkingPathNode[] = buildings.map((b) => ({
@@ -580,8 +580,8 @@ const alerts: CampusAlert[] = [
   {
     id: "alert-richardson-west",
     severity: "warning",
-    title: "Richardson Science Hall — West Entrance Closed",
-    message: "The west entrance to Richardson Science Hall is temporarily closed for construction. Use the south entrance instead.",
+    title: "Long Hall — West Entrance Closed",
+    message: "The west entrance to Long Hall is temporarily closed for construction. Use the south entrance instead.",
     affectedBuildingIds: ["richardson"],
     affectedEntranceIds: ["richardson-west"],
     substituteEntranceId: "richardson-south",
@@ -593,8 +593,8 @@ const alerts: CampusAlert[] = [
   {
     id: "alert-library-elevator",
     severity: "advisory",
-    title: "Hamilton Library — Elevator Temporarily Unavailable",
-    message: "The elevator near the east entrance of Hamilton Library is temporarily out of service. The east entrance ramp is still accessible for step-free entry to the 1st floor.",
+    title: "Cooper Library — Elevator Temporarily Unavailable",
+    message: "The elevator near the east entrance of Cooper Library is temporarily out of service. The east entrance ramp is still accessible for step-free entry to the 1st floor.",
     affectedBuildingIds: ["library"],
     startsAt: "2026-08-13T08:00:00-04:00",
     active: true
@@ -603,7 +603,7 @@ const alerts: CampusAlert[] = [
     id: "alert-lot-b-closed",
     severity: "warning",
     title: "Visitor Lot B Closed Today",
-    message: "Visitor Lot B is closed today for event setup near the Athletics Center. Faculty & Staff Lot D is open to visitors after 6 PM and on weekends.",
+    message: "Visitor Lot B is closed today for event setup near Littlejohn Coliseum. Faculty & Staff Lot D is open to visitors after 6 PM and on weekends.",
     affectedBuildingIds: ["athletics-center", "stadium"],
     affectedParkingIds: ["lot-b"],
     startsAt: "2026-08-15T00:00:00-04:00",
@@ -613,8 +613,8 @@ const alerts: CampusAlert[] = [
   {
     id: "alert-green-walkway",
     severity: "advisory",
-    title: "Campus Green — Walkway Detour",
-    message: "The northeast walkway across the Campus Green is temporarily closed for irrigation work. Please use the paved path along the Green's south edge.",
+    title: "Bowman Field — Walkway Detour",
+    message: "The northeast walkway across Bowman Field is temporarily closed for irrigation work. Please use the paved path along the field's south edge.",
     affectedBuildingIds: [],
     startsAt: "2026-08-12T07:00:00-04:00",
     active: true
@@ -622,8 +622,8 @@ const alerts: CampusAlert[] = [
   {
     id: "alert-stadium-traffic",
     severity: "info",
-    title: "Event Traffic Near University Stadium",
-    message: "Increased pedestrian and vehicle traffic is expected near University Stadium this evening ahead of the Homecoming basketball game.",
+    title: "Event Traffic Near Memorial Stadium",
+    message: "Increased pedestrian and vehicle traffic is expected near Memorial Stadium this evening ahead of the Homecoming basketball game.",
     affectedBuildingIds: ["stadium", "athletics-center"],
     startsAt: "2026-08-15T15:00:00-04:00",
     endsAt: "2026-08-15T22:00:00-04:00",
@@ -634,7 +634,7 @@ const alerts: CampusAlert[] = [
 const construction: ConstructionNotice[] = [
   {
     id: "construction-richardson-west",
-    title: "Richardson Science Hall — West Entrance Sidewalk Replacement",
+    title: "Long Hall — West Entrance Sidewalk Replacement",
     description: "The sidewalk and steps at the west entrance are being replaced. The entrance is closed to foot traffic until work is complete.",
     affectedBuildingIds: ["richardson"],
     active: true,
@@ -643,7 +643,7 @@ const construction: ConstructionNotice[] = [
   },
   {
     id: "construction-founders-lobby",
-    title: "Founders Administration Building — Lobby Renovation",
+    title: "Sikes Hall — Lobby Renovation",
     description: "Minor lobby renovation work. All offices remain open and accessible through both entrances.",
     affectedBuildingIds: ["founders"],
     active: true,
@@ -675,7 +675,7 @@ const events: CampusEvent[] = [
     description: "A guided walking tour of academic buildings, residence halls, dining, and athletics facilities.",
     recommendedParkingId: "lot-a",
     recommendedEntranceId: "admissions-east",
-    arrivalRecommendation: "Check in at the Admissions and Welcome Center 10 minutes before tour start."
+    arrivalRecommendation: "Check in at Old Main 10 minutes before tour start."
   },
   {
     id: "evt-basketball-homecoming",
@@ -683,7 +683,7 @@ const events: CampusEvent[] = [
     date: "2026-08-15",
     startTime: "19:00",
     venueBuildingId: "athletics-center",
-    description: "Beacon University Basketball hosts its Homecoming game in the Athletics Center arena.",
+    description: "Beacon University Basketball hosts its Homecoming game in Littlejohn Coliseum.",
     recommendedParkingId: "lot-d",
     recommendedEntranceId: "athletics-main",
     accessibilityNote: "Accessible seating available near both arena entrances — ask any usher for directions.",
@@ -699,7 +699,7 @@ const events: CampusEvent[] = [
     description: "University-wide Commencement ceremony for graduating students and their families.",
     recommendedParkingId: "lot-b",
     recommendedEntranceId: "stadium-main",
-    accessibilityNote: "Reserved accessible seating and drop-off is available at the Stadium Main Gate.",
+    accessibilityNote: "Reserved accessible seating and drop-off is available at the Memorial Stadium Main Gate.",
     arrivalRecommendation: "Arrive at least 60 minutes early — Lots B and D both fill quickly on Commencement morning."
   },
   {
@@ -709,7 +709,7 @@ const events: CampusEvent[] = [
     startTime: "11:00",
     endTime: "15:00",
     venueBuildingId: "student-union",
-    description: "Meet employers from across the region in the Student Union Ballroom.",
+    description: "Meet employers from across the region in the Hendrix Ballroom.",
     recommendedParkingId: "lot-e",
     recommendedEntranceId: "student-union-east",
     arrivalRecommendation: "The Ballroom is on the 2nd floor — the elevator near the east entrance is the quickest way up."
@@ -724,7 +724,7 @@ const events: CampusEvent[] = [
     description: "A weekend of campus activities, athletics, and dining for families visiting Beacon University.",
     recommendedParkingId: "lot-a",
     recommendedEntranceId: "student-union-east",
-    arrivalRecommendation: "The Student Union is home base for the weekend — pick up your schedule at the welcome table inside the east entrance."
+    arrivalRecommendation: "Hendrix Student Center is home base for the weekend — pick up your schedule at the welcome table inside the east entrance."
   },
   {
     id: "evt-open-house",
@@ -736,7 +736,7 @@ const events: CampusEvent[] = [
     description: "Information sessions, financial aid guidance, and campus tours for prospective students and families.",
     recommendedParkingId: "lot-a",
     recommendedEntranceId: "admissions-east",
-    arrivalRecommendation: "Check in at Admissions first — financial aid drop-in sessions run all morning at Founders."
+    arrivalRecommendation: "Check in at Old Main first — financial aid drop-in sessions run all morning at Sikes Hall."
   },
   {
     id: "evt-theatre",
@@ -784,34 +784,34 @@ const jordanSchedule: ClassScheduleEntry[] = [
 ];
 
 const tourStops: TourStop[] = [
-  { id: "tour-admissions", order: 1, buildingId: "admissions", point: { x: 330, y: 605 }, title: "Admissions and Welcome Center", description: "Your tour starts here — pick up a campus map and meet your tour guide." },
-  { id: "tour-green", order: 2, point: { x: 500, y: 360 }, title: "The Campus Green", description: "The historic heart of campus. Most academic buildings and the Student Union open onto the Green." },
-  { id: "tour-library", order: 3, buildingId: "library", point: { x: 415, y: 305 }, title: "Hamilton Library", description: "Four floors of study space, research help, and the campus's best reading room view." },
-  { id: "tour-union", order: 4, buildingId: "student-union", point: { x: 500, y: 445 }, title: "Beacon Student Union", description: "Dining, the bookstore, and the center of student life." },
-  { id: "tour-oak", order: 5, buildingId: "oak", point: { x: 190, y: 240 }, title: "Oak Residence Hall", description: "A sample first-year residence hall — tour a model room if one is available." },
-  { id: "tour-dining", order: 6, buildingId: "dining-commons", point: { x: 270, y: 310 }, title: "Beacon Dining Commons", description: "The main dining hall, with options for every diet and schedule." },
-  { id: "tour-richardson", order: 7, buildingId: "richardson", point: { x: 430, y: 260 }, title: "Richardson Science Hall", description: "Labs, lecture halls, and the Science Tutoring Center." },
-  { id: "tour-athletics", order: 8, buildingId: "athletics-center", point: { x: 760, y: 590 }, title: "Athletics Center", description: "The basketball arena and recreation center — end your tour here with a look at Beacon Athletics." }
+  { id: "tour-admissions", order: 1, buildingId: "admissions", point: { x: 330, y: 605 }, title: "Old Main", description: "Your tour starts here — pick up a campus map and meet your tour guide." },
+  { id: "tour-green", order: 2, point: { x: 500, y: 360 }, title: "Bowman Field", description: "The historic heart of campus. Most academic buildings and Hendrix Student Center open onto the field." },
+  { id: "tour-library", order: 3, buildingId: "library", point: { x: 415, y: 305 }, title: "Cooper Library", description: "Four floors of study space, research help, and the campus's best reading room view." },
+  { id: "tour-union", order: 4, buildingId: "student-union", point: { x: 500, y: 445 }, title: "Hendrix Student Center", description: "Dining, the bookstore, and the center of student life." },
+  { id: "tour-oak", order: 5, buildingId: "oak", point: { x: 190, y: 240 }, title: "Johnstone Hall", description: "A sample first-year residence hall — tour a model room if one is available." },
+  { id: "tour-dining", order: 6, buildingId: "dining-commons", point: { x: 270, y: 310 }, title: "Schilletter Dining Hall", description: "The main dining hall, with options for every diet and schedule." },
+  { id: "tour-richardson", order: 7, buildingId: "richardson", point: { x: 430, y: 260 }, title: "Long Hall", description: "Labs, lecture halls, and the Science Tutoring Center." },
+  { id: "tour-athletics", order: 8, buildingId: "athletics-center", point: { x: 760, y: 590 }, title: "Littlejohn Coliseum", description: "The basketball arena and recreation center — end your tour here with a look at Beacon Athletics." }
 ];
 
 const orientationItems: OrientationItem[] = [
-  { id: "orient-session", order: 1, icon: "schedule", title: "Your First Orientation Session", time: "09:00", buildingId: "student-union", description: "Welcome to Beacon University. Your first orientation session begins at 9:00 AM in the Beacon Student Union." },
-  { id: "orient-parking", order: 2, icon: "parking", title: "Where to Park", description: "Visitor parking is available in Lot A. From Lot A, the Student Union is about an 8 minute walk." },
-  { id: "orient-checkin", order: 3, icon: "check-in", title: "Check-In", buildingId: "student-union", description: "Check-in is through the east entrance of the Student Union — look for the Orientation table just inside." },
+  { id: "orient-session", order: 1, icon: "schedule", title: "Your First Orientation Session", time: "09:00", buildingId: "student-union", description: "Welcome to Beacon University. Your first orientation session begins at 9:00 AM in Hendrix Student Center." },
+  { id: "orient-parking", order: 2, icon: "parking", title: "Where to Park", description: "Visitor parking is available in Lot A. From Lot A, Hendrix Student Center is about an 8 minute walk." },
+  { id: "orient-checkin", order: 3, icon: "check-in", title: "Check-In", buildingId: "student-union", description: "Check-in is through the east entrance of Hendrix Student Center — look for the Orientation table just inside." },
   { id: "orient-id", order: 4, icon: "id", title: "Student ID", buildingId: "student-union", description: "Get your Beacon University ID card at the Student Affairs desk, 1st floor." },
-  { id: "orient-financial-aid", order: 5, icon: "financial-aid", title: "Financial Aid", buildingId: "founders", description: "Founders Administration Building, 2nd floor, Room 220. Bring a photo ID." },
-  { id: "orient-residence", order: 6, icon: "residence", title: "Your Residence Hall", buildingId: "oak", description: "Move into Oak Residence Hall any time after 9:00 AM. Volunteers at the main entrance can help you carry belongings." },
-  { id: "orient-dining", order: 7, icon: "dining", title: "Dining", buildingId: "dining-commons", description: "Beacon Dining Commons is open for breakfast, lunch, and dinner. Your student ID doubles as your meal card." },
-  { id: "orient-sessions", order: 8, icon: "sessions", title: "Afternoon Advising Sessions", time: "13:30", buildingId: "jefferson", description: "Academic advising sessions continue at 1:30 PM in the Jefferson Academic Center." }
+  { id: "orient-financial-aid", order: 5, icon: "financial-aid", title: "Financial Aid", buildingId: "founders", description: "Sikes Hall, 2nd floor, Room 220. Bring a photo ID." },
+  { id: "orient-residence", order: 6, icon: "residence", title: "Your Residence Hall", buildingId: "oak", description: "Move into Johnstone Hall any time after 9:00 AM. Volunteers at the main entrance can help you carry belongings." },
+  { id: "orient-dining", order: 7, icon: "dining", title: "Dining", buildingId: "dining-commons", description: "Schilletter Dining Hall is open for breakfast, lunch, and dinner. Your student ID doubles as your meal card." },
+  { id: "orient-sessions", order: 8, icon: "sessions", title: "Afternoon Advising Sessions", time: "13:30", buildingId: "jefferson", description: "Academic advising sessions continue at 1:30 PM in Strode Tower." }
 ];
 
 const quickQuestions: QuickQuestion[] = [
-  { id: "qq-next-class", question: "Where is my next class?", answer: "Your next class is BIO 101 at 10:30 AM in Richardson Science Hall, Room 204 — about an 8 minute walk from here." },
-  { id: "qq-parking", question: "Where can I park?", answer: "Visitor parking is available in Lot A near Admissions, with no permit required for the first 2 hours." },
+  { id: "qq-next-class", question: "Where is my next class?", answer: "Your next class is BIO 101 at 10:30 AM in Long Hall, Room 204 — about an 8 minute walk from here." },
+  { id: "qq-parking", question: "Where can I park?", answer: "Visitor parking is available in Lot A near Old Main, with no permit required for the first 2 hours." },
   { id: "qq-restroom", question: "Where is the nearest restroom?", answer: "Open any building page to see restroom and accessible-restroom locations by floor — most buildings have one near the main entrance." },
-  { id: "qq-food", question: "Where can I eat?", answer: "Beacon Dining Commons is open now, and the Student Union has a coffee shop and grab-and-go options." },
+  { id: "qq-food", question: "Where can I eat?", answer: "Schilletter Dining Hall is open now, and Hendrix Student Center has a coffee shop and grab-and-go options." },
   { id: "qq-open-now", question: "What is open now?", answer: "Most academic buildings are open until 10 PM. Check a building's detail page for its exact hours." },
-  { id: "qq-admissions", question: "How do I get to Admissions?", answer: "Admissions and Welcome Center is about a 4 minute walk from Visitor Lot A. Use the east entrance — visitor check-in is directly inside." },
+  { id: "qq-admissions", question: "How do I get to Admissions?", answer: "Old Main is about a 4 minute walk from Visitor Lot A. Use the east entrance — visitor check-in is directly inside." },
   { id: "qq-events", question: "What events are happening today?", answer: "Check the Events tab for today's campus events, including recommended parking and entrances for each." },
   { id: "qq-late", question: "I'm running late — what's the fastest route to class?", answer: "Start your route now and Beacon will guide you the fastest way, calling out any entrance changes along the way." }
 ];
@@ -869,10 +869,10 @@ export const DEMO_PERSONA = {
 };
 
 export const START_POINT_OPTIONS: { id: string; label: string }[] = [
-  { id: "green", label: "Campus Green (default)" },
-  { id: "oak", label: "Oak Residence Hall" },
-  { id: "pine", label: "Pine Residence Hall" },
-  { id: "student-union", label: "Beacon Student Union" },
+  { id: "green", label: "Bowman Field (default)" },
+  { id: "oak", label: "Johnstone Hall" },
+  { id: "pine", label: "Manning Hall" },
+  { id: "student-union", label: "Hendrix Student Center" },
   { id: "lot-a", label: "Visitor Lot A" },
   { id: "lot-b", label: "Visitor Lot B" }
 ];

@@ -47,10 +47,10 @@ export function CampusMap({
       className="w-full rounded-[var(--radius-card)] border border-white/[0.06] bg-[#0a0d12]"
     >
       <rect x="0" y="0" width="1000" height="700" fill="#0a0d12" />
-      {/* Campus Green */}
+      {/* Bowman Field */}
       <ellipse cx="500" cy="380" rx="180" ry="140" fill="#12321f" opacity="0.7" />
       <text x="500" y="380" textAnchor="middle" fill="#4ade80" opacity="0.7" fontSize="14" fontWeight={600}>
-        Campus Green
+        Bowman Field
       </text>
 
       {/* Path edges, subtle */}

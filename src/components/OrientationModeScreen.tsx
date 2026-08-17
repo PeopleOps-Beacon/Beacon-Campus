@@ -36,7 +36,7 @@ export function OrientationModeScreen({
         <Badge tone="gold">Orientation Mode</Badge>
         <h1 className="mt-2 text-[var(--font-display)] font-bold text-white">Welcome to Beacon University</h1>
         <p className="mt-1 text-sm text-white/60">
-          Your first orientation session begins at 9:00 AM in the Beacon Student Union. Here's everything for your
+          Your first orientation session begins at 9:00 AM in Hendrix Student Center. Here's everything for your
           first day.
         </p>
       </div>

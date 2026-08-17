@@ -11,7 +11,7 @@ import {
 } from "./campusEngine";
 
 describe("findShortestPath", () => {
-  it("computes the Green -> Richardson Science Hall walk in 8 minutes", () => {
+  it("computes the Bowman Field -> Long Hall walk in 8 minutes", () => {
     const result = findShortestPath(BEACON_UNIVERSITY, "green", "richardson");
     expect(result).not.toBeNull();
     expect(result!.minutes).toBe(8);
@@ -30,7 +30,7 @@ describe("findShortestPath", () => {
     expect(accessible!.minutes).toBe(4);
   });
 
-  it("routes through the calmer Reflection Garden when calmRoute is preferred", () => {
+  it("routes through the calmer Reflection Pond when calmRoute is preferred", () => {
     const direct = findShortestPath(BEACON_UNIVERSITY, "green", "union-plaza");
     const calm = findShortestPath(BEACON_UNIVERSITY, "green", "union-plaza", { calmRoute: true });
     expect(direct!.minutes).toBe(2);
@@ -45,7 +45,7 @@ describe("findShortestPath", () => {
 });
 
 describe("recommendEntrance", () => {
-  it("substitutes Richardson's closed west entrance with the south entrance", () => {
+  it("substitutes Long Hall's closed west entrance with the south entrance", () => {
     const richardson = BEACON_UNIVERSITY.buildings.find((b) => b.id === "richardson")!;
     const rec = recommendEntrance(BEACON_UNIVERSITY, richardson);
     expect(rec.entrance.id).toBe("richardson-south");
@@ -150,7 +150,7 @@ describe("getDestinationIntel / computeRoutePlan", () => {
 });
 
 describe("search", () => {
-  it("resolves 'BIO 101' to Richardson Room 204 via the alias map", () => {
+  it("resolves 'BIO 101' to Long Hall Room 204 via the alias map", () => {
     const results = search(BEACON_UNIVERSITY, "bio 101");
     expect(results[0].kind).toBe("room");
     expect(results[0].title).toMatch(/204/);

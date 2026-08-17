@@ -17,6 +17,7 @@ import { effectivePreferences, type Building, type BuildingCategory, type Campus
 
 import { MobileAppShell } from "./components/shell/MobileAppShell";
 import type { TabId } from "./components/shell/TabNavigator";
+import { LandingScreen } from "./components/LandingScreen";
 import { Onboarding } from "./components/Onboarding";
 import { LocationPermissionPrompt } from "./components/LocationPermissionPrompt";
 import { HomeScreen, type CategoryId } from "./components/HomeScreen";
@@ -147,6 +148,7 @@ export default function BeaconCampusApp() {
   const { preferences, togglePreference } = usePreferences();
   const analytics = useAnalytics();
 
+  const [hasBegun, setHasBegun] = useState(false);
   const [persona, setPersona] = useState<Persona | null>(loadPersona);
   const [onboardingSeen, setOnboardingSeen] = useState<boolean>(() =>
     typeof window !== "undefined" ? window.localStorage.getItem("beacon-campus-onboarding-seen") === "1" : false
@@ -285,9 +287,17 @@ export default function BeaconCampusApp() {
     setOnboardingSeen(true);
   }
 
+  if (!hasBegun) {
+    return (
+      <div className="h-full w-full">
+        <LandingScreen onBegin={() => setHasBegun(true)} />
+      </div>
+    );
+  }
+
   if (!onboardingSeen) {
     return (
-      <div className="mx-auto h-full max-w-[520px] bg-campus-ink">
+      <div className="h-full w-full">
         <Onboarding onSelect={handlePersonaSelect} onSkip={skipOnboarding} />
       </div>
     );
@@ -312,6 +322,7 @@ export default function BeaconCampusApp() {
       onAssistant={() => patch({ screen: "assistant" })}
       onAdmin={() => patch({ screen: "admin" })}
     >
+      <div key={session.screen} className="animate-screen-in">
       {location.status === "unknown" && !session.locationPromptDismissed && session.screen === "home" && (
         <div className="mb-4">
           <LocationPermissionPrompt
@@ -479,6 +490,7 @@ export default function BeaconCampusApp() {
       {session.screen === "admin" && (
         <AdminDashboard campus={campus} actions={actions} hasCustomizations={hasCustomizations} analytics={analytics} />
       )}
+      </div>
     </MobileAppShell>
   );
 }

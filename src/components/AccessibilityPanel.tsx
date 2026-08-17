@@ -36,7 +36,7 @@ const PREFERENCE_ROWS: {
   {
     key: "calmRoute",
     label: "Prefer a calmer route",
-    description: "Favor quieter, lower-stimulation paths like the Reflection Garden over busy plazas.",
+    description: "Favor quieter, lower-stimulation paths like the Reflection Pond over busy plazas.",
     icon: Ear
   },
   {
