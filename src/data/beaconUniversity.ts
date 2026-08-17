@@ -382,6 +382,8 @@ const buildings: Building[] = [
     nearbyParkingIds: ["lot-e"],
     landmarkNote: "East edge of campus, near the Health Center",
     photoTone: "stone",
+    safetyGuidance:
+      "Beacon has no verified building-specific evacuation routes or assembly points for Clemson — this is general safety guidance, not an official procedure. Always follow Clemson's official emergency alerts, posted evacuation signage, and instructions from staff or first responders on site. During a fire alarm, use stairs, not elevators. If you can't use stairs, go to the nearest stairwell landing or other marked rescue-assistance area, stay put, and call 911 to report your location. For any immediate emergency, call 911 or use a campus Blue Light phone.",
     provenance: fixture(
       "Clemson University Public Safety (Police, Fire & EMS, Emergency Management) and campus Blue Light emergency phones are real — clemson.edu/cusafety. This record's specific building, address, and hours-of-day layout were not confirmed against an official source and are illustrative."
     )
@@ -658,39 +660,44 @@ const parkingNodes: WalkingPathNode[] = parkingLots.map((p) => ({
 
 const pathNodes: WalkingPathNode[] = [...landmarkNodes, ...buildingNodes, ...parkingNodes];
 
+// elevationChange (1 flat – 5 steep) and surface are illustrative estimates based
+// on Clemson's real, well-documented topology (Tillman Hall/Old Main and Sikes
+// Hall sit on a hill above Bowman Field; Memorial Stadium is a literal valley —
+// "Death Valley") rather than a survey. See campus.dataDisclosure and the
+// exertion note surfaced alongside route scores for that caveat.
 const pathEdges: WalkingPathEdge[] = [
-  { from: "green", to: "library-plaza", minutes: 3, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2 },
-  { from: "green", to: "union-plaza", minutes: 2, accessible: true, outdoor: true, crowdLevel: 4, noiseLevel: 4 },
-  { from: "green", to: "garden-walk", minutes: 2, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, lowStimulation: true },
-  { from: "garden-walk", to: "union-plaza", minutes: 2, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, lowStimulation: true },
-  { from: "green", to: "north-quad", minutes: 3, accessible: true, outdoor: true, crowdLevel: 3, noiseLevel: 2 },
-  { from: "green", to: "admin-walk", minutes: 4, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1 },
-  { from: "green", to: "dorm-row", minutes: 4, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2 },
-  { from: "library-plaza", to: "richardson", minutes: 5, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 1 },
-  { from: "library-plaza", to: "library", minutes: 1, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, lowStimulation: true },
-  { from: "library-plaza", to: "north-quad", minutes: 2, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2 },
-  { from: "north-quad", to: "jefferson", minutes: 2, accessible: true, outdoor: true, crowdLevel: 3, noiseLevel: 3 },
-  { from: "north-quad", to: "fine-arts", minutes: 4, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1 },
-  { from: "north-quad", to: "fine-arts", minutes: 2, accessible: false, outdoor: true, crowdLevel: 2, noiseLevel: 2 },
-  { from: "union-plaza", to: "student-union", minutes: 1, accessible: true, outdoor: true, crowdLevel: 4, noiseLevel: 4 },
-  { from: "union-plaza", to: "veterans", minutes: 2, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2 },
-  { from: "union-plaza", to: "east-walk", minutes: 3, accessible: true, outdoor: true, crowdLevel: 3, noiseLevel: 3 },
-  { from: "union-plaza", to: "lot-e", minutes: 3, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2 },
-  { from: "east-walk", to: "health-center", minutes: 2, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1 },
-  { from: "east-walk", to: "public-safety", minutes: 2, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1 },
-  { from: "east-walk", to: "athletics-walk", minutes: 3, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2 },
-  { from: "admin-walk", to: "founders", minutes: 2, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, lowStimulation: true },
-  { from: "admin-walk", to: "south-gate", minutes: 3, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, lowStimulation: true },
-  { from: "admin-walk", to: "lot-d", minutes: 2, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1 },
-  { from: "south-gate", to: "admissions", minutes: 3, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2 },
-  { from: "south-gate", to: "lot-a", minutes: 1, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1 },
-  { from: "dorm-row", to: "oak", minutes: 1, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2 },
-  { from: "dorm-row", to: "pine", minutes: 2, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2 },
-  { from: "dorm-row", to: "dining-commons", minutes: 2, accessible: true, outdoor: true, crowdLevel: 4, noiseLevel: 3 },
-  { from: "dorm-row", to: "lot-c", minutes: 1, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1 },
-  { from: "athletics-walk", to: "athletics-center", minutes: 1, accessible: true, outdoor: true, crowdLevel: 3, noiseLevel: 3 },
-  { from: "athletics-walk", to: "stadium", minutes: 3, accessible: true, outdoor: true, crowdLevel: 3, noiseLevel: 3 },
-  { from: "athletics-walk", to: "lot-b", minutes: 2, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1 }
+  { from: "green", to: "library-plaza", minutes: 3, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2, elevationChange: 3, surface: "paved" },
+  { from: "green", to: "union-plaza", minutes: 2, accessible: true, outdoor: true, crowdLevel: 4, noiseLevel: 4, elevationChange: 1, surface: "paved" },
+  { from: "green", to: "garden-walk", minutes: 2, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, lowStimulation: true, elevationChange: 1, surface: "paved" },
+  { from: "garden-walk", to: "union-plaza", minutes: 2, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, lowStimulation: true, elevationChange: 1, surface: "paved" },
+  { from: "green", to: "north-quad", minutes: 3, accessible: true, outdoor: true, crowdLevel: 3, noiseLevel: 2, elevationChange: 2, surface: "paved" },
+  { from: "green", to: "admin-walk", minutes: 4, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, elevationChange: 4, surface: "paved" },
+  { from: "green", to: "dorm-row", minutes: 4, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2, elevationChange: 2, surface: "paved" },
+  { from: "library-plaza", to: "richardson", minutes: 5, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 1, elevationChange: 2, surface: "paved" },
+  { from: "library-plaza", to: "library", minutes: 1, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, lowStimulation: true, elevationChange: 1, surface: "paved" },
+  { from: "library-plaza", to: "north-quad", minutes: 2, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2, elevationChange: 1, surface: "paved" },
+  { from: "north-quad", to: "jefferson", minutes: 2, accessible: true, outdoor: true, crowdLevel: 3, noiseLevel: 3, elevationChange: 1, surface: "paved" },
+  { from: "north-quad", to: "fine-arts", minutes: 4, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, elevationChange: 2, surface: "paved" },
+  { from: "north-quad", to: "fine-arts", minutes: 2, accessible: false, outdoor: true, crowdLevel: 2, noiseLevel: 2, elevationChange: 4, surface: "unpaved" },
+  { from: "union-plaza", to: "student-union", minutes: 1, accessible: true, outdoor: true, crowdLevel: 4, noiseLevel: 4, elevationChange: 1, surface: "paved" },
+  { from: "union-plaza", to: "veterans", minutes: 2, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2, elevationChange: 2, surface: "paved" },
+  { from: "union-plaza", to: "east-walk", minutes: 3, accessible: true, outdoor: true, crowdLevel: 3, noiseLevel: 3, elevationChange: 2, surface: "paved" },
+  { from: "union-plaza", to: "lot-e", minutes: 3, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2, elevationChange: 2, surface: "paved" },
+  { from: "east-walk", to: "health-center", minutes: 2, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, elevationChange: 1, surface: "paved" },
+  { from: "east-walk", to: "public-safety", minutes: 2, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, elevationChange: 1, surface: "paved" },
+  { from: "east-walk", to: "athletics-walk", minutes: 3, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2, elevationChange: 2, surface: "paved" },
+  { from: "admin-walk", to: "founders", minutes: 2, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, lowStimulation: true, elevationChange: 2, surface: "paved" },
+  { from: "admin-walk", to: "south-gate", minutes: 3, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, lowStimulation: true, elevationChange: 3, surface: "paved" },
+  { from: "admin-walk", to: "lot-d", minutes: 2, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, elevationChange: 2, surface: "paved" },
+  { from: "south-gate", to: "admissions", minutes: 3, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2, elevationChange: 2, surface: "paved" },
+  { from: "south-gate", to: "lot-a", minutes: 1, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, elevationChange: 1, surface: "paved" },
+  { from: "dorm-row", to: "oak", minutes: 1, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2, elevationChange: 1, surface: "paved" },
+  { from: "dorm-row", to: "pine", minutes: 2, accessible: true, outdoor: true, crowdLevel: 2, noiseLevel: 2, elevationChange: 1, surface: "paved" },
+  { from: "dorm-row", to: "dining-commons", minutes: 2, accessible: true, outdoor: true, crowdLevel: 4, noiseLevel: 3, elevationChange: 1, surface: "paved" },
+  { from: "dorm-row", to: "lot-c", minutes: 1, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, elevationChange: 1, surface: "paved" },
+  { from: "athletics-walk", to: "athletics-center", minutes: 1, accessible: true, outdoor: true, crowdLevel: 3, noiseLevel: 3, elevationChange: 2, surface: "paved" },
+  { from: "athletics-walk", to: "stadium", minutes: 3, accessible: true, outdoor: true, crowdLevel: 3, noiseLevel: 3, elevationChange: 3, surface: "paved" },
+  { from: "athletics-walk", to: "lot-b", minutes: 2, accessible: true, outdoor: true, crowdLevel: 1, noiseLevel: 1, elevationChange: 1, surface: "paved" }
 ];
 
 // ---------------------------------------------------------------------------

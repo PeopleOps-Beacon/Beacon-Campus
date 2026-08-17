@@ -144,6 +144,7 @@ function AlertsAdmin({ campus, actions }: { campus: Campus; actions: AdminAction
             <option value="info">Info</option>
             <option value="advisory">Advisory</option>
             <option value="warning">Warning</option>
+            <option value="emergency">Emergency</option>
           </select>
           <select
             value={buildingId}

@@ -128,6 +128,13 @@ export interface Building {
   photoTone: "stone" | "brick" | "glass" | "green";
   /** A real photo of the actual building, when one is available and confidently matched. Falls back to the illustration when absent. */
   photo?: BuildingPhoto;
+  /**
+   * General, non-building-specific life-safety guidance (e.g. "don't use elevators
+   * during a fire"). Deliberately generic and disclaimer-heavy — Beacon has no
+   * verified building-specific evacuation routes or assembly points, and must
+   * never imply otherwise. Always defer to official campus alerts and staff.
+   */
+  safetyGuidance?: string;
   /** Is this building real, and how much of this record is sourced vs. illustrative? */
   provenance: DataProvenance;
 }
@@ -175,9 +182,17 @@ export interface WalkingPathEdge {
   noiseLevel?: number;
   /** Flags a calm, low-stimulation stretch (e.g. a garden path) for the calmRoute preference. */
   lowStimulation?: boolean;
+  /**
+   * 1 (flat) - 5 (steep). Illustrative estimate based on real, documented campus
+   * topology, not survey-grade elevation data — see the edge authoring comment
+   * in beaconUniversity.ts and the caveat surfaced next to any exertion score.
+   */
+  elevationChange?: number;
+  /** Unpaved surfaces (gravel, grass) are harder going for wheels, canes, and casters even when technically step-free. */
+  surface?: "paved" | "unpaved";
 }
 
-export type AlertSeverity = "info" | "advisory" | "warning";
+export type AlertSeverity = "info" | "advisory" | "warning" | "emergency";
 
 export interface CampusAlert {
   id: string;

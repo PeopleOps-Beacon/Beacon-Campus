@@ -5,6 +5,7 @@ import {
   CalendarDays,
   GraduationCap,
   Landmark,
+  MapPin,
   ShieldAlert,
   SquareParking,
   Trophy,
@@ -78,6 +79,9 @@ export function HomeScreen({
   persona,
   now,
   startNodeId,
+  startPointLabel,
+  onChangeStartPoint,
+  nearCampus,
   preferences,
   searchQuery,
   onSearchQueryChange,
@@ -93,6 +97,9 @@ export function HomeScreen({
   persona: Persona | null;
   now: Date;
   startNodeId: string;
+  startPointLabel: string;
+  onChangeStartPoint: () => void;
+  nearCampus: boolean | null;
   preferences: CampusPreferences;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
@@ -126,6 +133,19 @@ export function HomeScreen({
         onKeyDown={combobox.onKeyDown}
       />
 
+      {!searchQuery.trim() && (
+        <button type="button" onClick={onChangeStartPoint} className="-mt-2 flex items-center gap-2 self-start text-left">
+          <MapPin size={13} className="text-white/40" aria-hidden="true" />
+          <span className="text-xs text-white/50">
+            Starting from <span className="font-medium text-white/75">{startPointLabel}</span>
+          </span>
+          <span className="text-xs font-semibold text-campus-gold">Change</span>
+        </button>
+      )}
+      {!searchQuery.trim() && nearCampus === false && (
+        <p className="-mt-3 text-xs text-white/40">You don't look to be on campus right now — routes will start from {startPointLabel} until you pick somewhere else.</p>
+      )}
+
       {searchQuery.trim() ? (
         <SearchResultsList
           results={searchResults}
@@ -147,22 +167,32 @@ export function HomeScreen({
             />
           )}
 
-          {alerts.length > 0 && (
-            <button type="button" onClick={onOpenAlerts} className="text-left">
-              <Card className="flex items-center gap-3 border-campus-gold/25 bg-campus-gold/[0.06]">
-                <IconTile tone="warning">
-                  <AlertTriangle size={18} aria-hidden="true" />
-                </IconTile>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-white">
-                    {alerts.length} active campus {alerts.length === 1 ? "alert" : "alerts"}
-                  </p>
-                  <p className="truncate text-xs text-white/60">{alerts[0].title}</p>
-                </div>
-                <Badge tone="warning">View</Badge>
-              </Card>
-            </button>
-          )}
+          {alerts.length > 0 &&
+            (() => {
+              const emergency = alerts.find((a) => a.severity === "emergency");
+              return (
+                <button type="button" onClick={onOpenAlerts} className="text-left">
+                  <Card
+                    className={
+                      emergency
+                        ? "flex items-center gap-3 border-red-500/40 bg-red-500/10"
+                        : "flex items-center gap-3 border-campus-gold/25 bg-campus-gold/[0.06]"
+                    }
+                  >
+                    <IconTile tone={emergency ? "danger" : "warning"}>
+                      <AlertTriangle size={18} aria-hidden="true" />
+                    </IconTile>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-white">
+                        {emergency ? emergency.title : `${alerts.length} active campus ${alerts.length === 1 ? "alert" : "alerts"}`}
+                      </p>
+                      <p className="truncate text-xs text-white/60">{emergency ? "Tap for emergency guidance" : alerts[0].title}</p>
+                    </div>
+                    <Badge tone={emergency ? "danger" : "warning"}>View</Badge>
+                  </Card>
+                </button>
+              );
+            })()}
 
           <div>
             <SectionHeading title="Get around campus" />

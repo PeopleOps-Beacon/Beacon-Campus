@@ -517,6 +517,61 @@ export function getGuidanceSteps(
   return steps;
 }
 
+// ---------------------------------------------------------------------------
+// Accessibility Route Score (exertion estimate)
+//
+// "Step-free" is a hard pass/fail filter — it says nothing about whether a
+// technically-accessible route is actually easy to travel. This estimates how
+// physically demanding a given path is from grade and surface data on its
+// edges, so two "accessible" routes can be told apart. Inputs are illustrative
+// (see the edge-authoring comment in beaconUniversity.ts), so this is exposed
+// as a plain-language label, never a fabricated precise number.
+// ---------------------------------------------------------------------------
+
+export interface ExertionEstimate {
+  label: "Easy" | "Moderate" | "Demanding";
+  tone: "success" | "warning" | "danger";
+  note: string;
+}
+
+export function estimateExertion(campus: Campus, path: string[]): ExertionEstimate | null {
+  if (path.length < 2) return { label: "Easy", tone: "success", note: "You're already there." };
+
+  let totalElevation = 0;
+  let edgeCount = 0;
+  let unpavedCount = 0;
+
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1];
+    const b = path[i];
+    const candidates = campus.pathEdges.filter((e) => (e.from === a && e.to === b) || (e.from === b && e.to === a));
+    if (candidates.length === 0) continue;
+    const edge = candidates.reduce((min, e) => ((e.elevationChange ?? 1) < (min.elevationChange ?? 1) ? e : min));
+    totalElevation += edge.elevationChange ?? 1;
+    if (edge.surface === "unpaved") unpavedCount += 1;
+    edgeCount += 1;
+  }
+
+  if (edgeCount === 0) return null;
+  const avgElevation = totalElevation / edgeCount;
+
+  if (avgElevation <= 1.5 && unpavedCount === 0) {
+    return { label: "Easy", tone: "success", note: "Mostly flat, paved ground the whole way." };
+  }
+  if (avgElevation <= 2.5 || unpavedCount === 1) {
+    return {
+      label: "Moderate",
+      tone: "warning",
+      note: unpavedCount > 0 ? "A gentle grade with one unpaved stretch." : "A gentle grade for part of the walk."
+    };
+  }
+  return {
+    label: "Demanding",
+    tone: "danger",
+    note: unpavedCount > 0 ? "Steeper grades and an unpaved stretch — budget extra time and a rest stop if you need one." : "Steeper grades along this route — budget extra time and a rest stop if you need one."
+  };
+}
+
 export function computeRoutePlan(
   campus: Campus,
   target: DestinationTarget,

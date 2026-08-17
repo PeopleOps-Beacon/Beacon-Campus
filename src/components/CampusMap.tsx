@@ -104,8 +104,19 @@ export function CampusMap({
             key={b.id}
             transform={`translate(${b.point.x}, ${b.point.y})`}
             onClick={onSelectBuilding ? () => onSelectBuilding(b.id) : undefined}
-            style={{ cursor: onSelectBuilding ? "pointer" : "default" }}
+            onKeyDown={
+              onSelectBuilding
+                ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onSelectBuilding(b.id);
+                    }
+                  }
+                : undefined
+            }
+            style={{ cursor: onSelectBuilding ? "pointer" : "default", outlineOffset: 4 }}
             role={onSelectBuilding ? "button" : undefined}
+            tabIndex={onSelectBuilding ? 0 : undefined}
             aria-label={onSelectBuilding ? b.name : undefined}
           >
             {isHighlighted && <circle r={22} fill={color} opacity={0.18} />}

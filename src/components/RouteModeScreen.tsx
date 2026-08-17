@@ -1,7 +1,7 @@
 import { Accessibility, Clock, Ear, SlidersHorizontal, Toilet, Users, Zap } from "lucide-react";
-import { getDestinationIntel, type DestinationTarget } from "../lib/campusEngine";
+import { computeRoutePlan, estimateExertion, type DestinationTarget } from "../lib/campusEngine";
 import { ROUTE_MODE_META, effectivePreferences, type Campus, type CampusPreferences, type RouteMode } from "../types/campus";
-import { Button, Card, IconTile, Toggle, cx } from "./ui/Primitives";
+import { Badge, Button, Card, IconTile, Toggle, cx } from "./ui/Primitives";
 
 const MODE_ICON: Record<RouteMode, typeof Zap> = {
   fastest: Zap,
@@ -51,7 +51,8 @@ export function RouteModeScreen({
       <div className="flex flex-col gap-2.5">
         {MODES.map((mode) => {
           const preferences = effectivePreferences(basePreferences, mode);
-          const intel = getDestinationIntel(campus, target, { fromNodeId: startNodeId, preferences, now });
+          const plan = computeRoutePlan(campus, target, { fromNodeId: startNodeId, preferences, now });
+          const exertion = plan ? estimateExertion(campus, plan.path) : null;
           const Icon = MODE_ICON[mode];
           const active = mode === selectedMode;
           const meta = ROUTE_MODE_META[mode];
@@ -71,8 +72,9 @@ export function RouteModeScreen({
                     <p className="text-sm font-semibold text-white">{meta.label}</p>
                     <p className="text-xs text-white/55">{mode === "custom" ? summarizeCustom(basePreferences) : meta.description}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-white">{intel ? `${intel.walkMinutes} min` : "—"}</p>
+                  <div className="flex flex-col items-end gap-1">
+                    <p className="text-sm font-bold text-white">{plan ? `${plan.destination.walkMinutes} min` : "—"}</p>
+                    {exertion && <Badge tone={exertion.tone}>{exertion.label}</Badge>}
                   </div>
                 </Card>
               </button>
@@ -95,6 +97,10 @@ export function RouteModeScreen({
           );
         })}
       </div>
+
+      <p className="text-xs text-white/40">
+        Exertion (Easy / Moderate / Demanding) is an illustrative estimate based on general campus terrain, not surveyed elevation data.
+      </p>
 
       <Button tone="primary" onClick={onContinue} className="mt-auto">
         Start Route

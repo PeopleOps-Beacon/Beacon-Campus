@@ -1,4 +1,4 @@
-import { AlertTriangle, Building2, Construction, DoorOpen, Navigation, SquareParking, Users } from "lucide-react";
+import { AlertTriangle, Building2, Construction, DoorOpen, Navigation, ShieldAlert, SquareParking, Users } from "lucide-react";
 import { activeAlertsForBuilding, activeConstructionForBuilding, buildingOpenStatus } from "../lib/campusEngine";
 import type { Building, Campus } from "../types/campus";
 import { BuildingVisual } from "./BuildingVisual";
@@ -56,6 +56,18 @@ export function BuildingDetailScreen({
       </div>
 
       <DataProvenanceNote provenance={building.provenance} />
+
+      {building.safetyGuidance && (
+        <Card className="flex items-start gap-3 border-red-500/25 bg-red-500/[0.04]">
+          <IconTile tone="danger">
+            <ShieldAlert size={16} aria-hidden="true" />
+          </IconTile>
+          <div>
+            <p className="text-sm font-semibold text-white">Emergency & Safety</p>
+            <p className="mt-1 text-sm text-white/70">{building.safetyGuidance}</p>
+          </div>
+        </Card>
+      )}
 
       {alerts.length > 0 && (
         <Card className="flex flex-col gap-2 border-campus-gold/25 bg-campus-gold/[0.06]">

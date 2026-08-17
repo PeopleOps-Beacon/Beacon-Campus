@@ -1,15 +1,17 @@
-import { AlertTriangle, Construction, Info } from "lucide-react";
+import { AlertTriangle, Construction, Info, ShieldAlert } from "lucide-react";
 import type { AlertSeverity, Campus } from "../types/campus";
 import { EmptyState, Badge, Card, IconTile, SectionHeading } from "./ui/Primitives";
 
 const SEVERITY_TONE: Record<AlertSeverity, "info" | "warning" | "danger"> = {
   info: "info",
   advisory: "info",
-  warning: "warning"
+  warning: "warning",
+  emergency: "danger"
 };
 
 export function AlertsCenter({ campus, onSelectBuilding }: { campus: Campus; onSelectBuilding: (buildingId: string) => void }) {
-  const active = campus.alerts.filter((a) => a.active);
+  const active = campus.alerts.filter((a) => a.active && a.severity !== "emergency");
+  const emergencies = campus.alerts.filter((a) => a.active && a.severity === "emergency");
   const activeConstruction = campus.construction.filter((c) => c.active);
 
   return (
@@ -19,7 +21,30 @@ export function AlertsCenter({ campus, onSelectBuilding }: { campus: Campus; onS
         <h1 className="text-[var(--font-display)] font-bold text-white">Campus Alerts</h1>
       </div>
 
-      {active.length === 0 && activeConstruction.length === 0 ? (
+      {emergencies.length > 0 && (
+        <div className="flex flex-col gap-2.5">
+          {emergencies.map((alert) => (
+            <Card key={alert.id} className="flex items-start gap-3 border-red-500/40 bg-red-500/10" role="alert">
+              <IconTile tone="danger">
+                <ShieldAlert size={16} aria-hidden="true" />
+              </IconTile>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-white">{alert.title}</p>
+                  <Badge tone="danger">Emergency</Badge>
+                </div>
+                <p className="mt-1 text-sm text-white/80">{alert.message}</p>
+                <p className="mt-2 text-xs text-white/50">
+                  This is a Beacon-relayed summary, not an official alert. Always follow instructions from Clemson's
+                  official emergency systems, posted signage, and staff or first responders on site.
+                </p>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {active.length === 0 && activeConstruction.length === 0 && emergencies.length === 0 ? (
         <EmptyState title="All clear" message="There are no active campus alerts right now." />
       ) : (
         <>

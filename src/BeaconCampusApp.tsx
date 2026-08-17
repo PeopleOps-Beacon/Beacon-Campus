@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { DEFAULT_START_NODE_ID } from "./data/beaconUniversity";
+import { DEFAULT_START_NODE_ID, START_POINT_OPTIONS } from "./data/beaconUniversity";
 import {
   computeRoutePlan,
   destinationTargetFromSearchResult,
@@ -13,7 +13,7 @@ import { usePreferences } from "./hooks/usePreferences";
 import { useAnalytics } from "./hooks/useAnalytics";
 import { useNotificationRead } from "./hooks/useNotificationRead";
 import type { DestinationTarget } from "./lib/campusEngine";
-import { effectivePreferences, type Building, type BuildingCategory, type CampusEvent, type ClassScheduleEntry, type Persona, type RouteMode, type SearchResult } from "./types/campus";
+import { effectivePreferences, type Building, type BuildingCategory, type Campus, type CampusEvent, type ClassScheduleEntry, type Persona, type RouteMode, type SearchResult } from "./types/campus";
 
 import { MobileAppShell } from "./components/shell/MobileAppShell";
 import type { TabId } from "./components/shell/TabNavigator";
@@ -37,6 +37,7 @@ import { CampusTourScreen } from "./components/CampusTourScreen";
 import { AccessibilityPanel } from "./components/AccessibilityPanel";
 import { QuickQuestions } from "./components/QuickQuestions";
 import { DirectoryScreen } from "./components/DirectoryScreen";
+import { StartPointScreen } from "./components/StartPointScreen";
 import { HelpScreen } from "./components/HelpScreen";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { Button, Card, ErrorState, SectionHeading } from "./components/ui/Primitives";
@@ -60,6 +61,7 @@ type Screen =
   | "arrival"
   | "building"
   | "directory"
+  | "start-point"
   | "parking"
   | "services"
   | "events"
@@ -124,6 +126,15 @@ function getDemoNow(): Date {
   return d;
 }
 
+function startPointLabel(campus: Campus, startNodeId: string): string {
+  const known = START_POINT_OPTIONS.find((o) => o.id === startNodeId);
+  if (known) return known.label;
+  const building = campus.buildings.find((b) => b.id === startNodeId);
+  if (building) return building.name;
+  const node = campus.pathNodes.find((n) => n.id === startNodeId);
+  return node?.label ?? "your last stop";
+}
+
 function loadPersona(): Persona | null {
   if (typeof window === "undefined") return null;
   return (window.localStorage.getItem("beacon-campus-persona") as Persona | null) ?? null;
@@ -145,7 +156,7 @@ const CATEGORY_ROUTES: Record<CategoryId, { screen: Screen; buildingId?: string;
 export default function BeaconCampusApp() {
   const { campus, hasCustomizations, actions } = useCampusData();
   const location = useLocationPermission();
-  const { preferences, togglePreference } = usePreferences();
+  const { preferences, expiry, togglePreference, setPreferenceWithDuration } = usePreferences();
   const analytics = useAnalytics();
 
   const [hasBegun, setHasBegun] = useState(false);
@@ -343,6 +354,9 @@ export default function BeaconCampusApp() {
           persona={persona}
           now={now}
           startNodeId={session.startNodeId}
+          startPointLabel={startPointLabel(campus, session.startNodeId)}
+          onChangeStartPoint={() => patch({ screen: "start-point" })}
+          nearCampus={location.nearCampus}
           preferences={preferences}
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
@@ -353,6 +367,13 @@ export default function BeaconCampusApp() {
           onStartClassNav={handleStartClassNav}
           onOpenAlerts={() => patch({ screen: "alerts", activeTab: "alerts" })}
           onOpenEvent={(eventId) => patch({ screen: "event-detail", activeEventId: eventId })}
+        />
+      )}
+
+      {session.screen === "start-point" && (
+        <StartPointScreen
+          currentStartNodeId={session.startNodeId}
+          onSelect={(nodeId) => patch({ screen: "home", activeTab: "home", startNodeId: nodeId })}
         />
       )}
 
@@ -476,10 +497,12 @@ export default function BeaconCampusApp() {
         <AccessibilityPanel
           campus={campus}
           preferences={preferences}
+          expiry={expiry}
           onTogglePreference={(key) => {
             togglePreference(key);
             analytics.trackPreferenceToggle(key);
           }}
+          onSetDuration={(key, durationMs) => setPreferenceWithDuration(key, true, durationMs)}
         />
       )}
 
@@ -501,6 +524,7 @@ function previousScreenFor(screen: Screen): Screen {
     arrival: "home",
     building: "home",
     directory: "home",
+    "start-point": "home",
     parking: "home",
     services: "home",
     events: "more",
@@ -521,6 +545,7 @@ function screenTitle(screen: Screen): string | undefined {
     alerts: "Alerts",
     more: "More",
     destination: "Destination",
+    "start-point": "Starting Point",
     "route-options": "Choose Route",
     navigation: "Directions",
     arrival: "Arrival",

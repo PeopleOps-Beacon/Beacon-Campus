@@ -11,8 +11,9 @@ import {
   Volume2
 } from "lucide-react";
 import { isSpeechAvailable } from "../lib/speech";
+import { PREFERENCE_DURATIONS } from "../hooks/usePreferences";
 import type { Campus, CampusPreferences } from "../types/campus";
-import { Card, IconTile, SectionHeading, Toggle } from "./ui/Primitives";
+import { Card, IconTile, SectionHeading, Toggle, cx } from "./ui/Primitives";
 
 const PREFERENCE_ROWS: {
   key: keyof CampusPreferences;
@@ -81,11 +82,15 @@ const PREFERENCE_ROWS: {
 export function AccessibilityPanel({
   campus,
   preferences,
-  onTogglePreference
+  expiry,
+  onTogglePreference,
+  onSetDuration
 }: {
   campus: Campus;
   preferences: CampusPreferences;
+  expiry: Partial<Record<keyof CampusPreferences, number>>;
   onTogglePreference: (key: keyof CampusPreferences) => void;
+  onSetDuration: (key: keyof CampusPreferences, durationMs: number | null) => void;
 }) {
   return (
     <div className="flex flex-col gap-5">
@@ -93,7 +98,8 @@ export function AccessibilityPanel({
         <p className="text-sm text-white/50">{campus.universityName}</p>
         <h1 className="text-[var(--font-display)] font-bold text-white">Accessibility & Preferences</h1>
         <p className="mt-1 text-sm text-white/60">
-          These preferences change how Beacon actually routes you — not just how the app looks.
+          These preferences change how Beacon actually routes you — not just how the app looks. Turn one on for good,
+          or just for as long as you need it.
         </p>
       </div>
 
@@ -101,18 +107,51 @@ export function AccessibilityPanel({
         {PREFERENCE_ROWS.map((row) => {
           const Icon = row.icon;
           const isDisabled = row.disabled?.(campus) ?? false;
+          const isOn = preferences[row.key] as boolean;
+          const expiresAt = expiry[row.key];
           return (
-            <Card key={row.key} className={`flex items-start gap-3 ${isDisabled ? "opacity-50" : ""}`}>
-              <IconTile tone={preferences[row.key] ? "gold" : "neutral"}>
-                <Icon size={16} aria-hidden="true" />
-              </IconTile>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-white">{row.label}</p>
-                <p className="mt-0.5 text-xs text-white/55">
-                  {isDisabled ? "Not supported in this browser." : row.description}
-                </p>
+            <Card key={row.key} className={isDisabled ? "opacity-50" : undefined}>
+              <div className="flex items-start gap-3">
+                <IconTile tone={isOn ? "gold" : "neutral"}>
+                  <Icon size={16} aria-hidden="true" />
+                </IconTile>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-white">{row.label}</p>
+                  <p className="mt-0.5 text-xs text-white/55">
+                    {isDisabled ? "Not supported in this browser." : row.description}
+                  </p>
+                </div>
+                <Toggle checked={isOn} onChange={() => onTogglePreference(row.key)} label={row.label} />
               </div>
-              <Toggle checked={preferences[row.key] as boolean} onChange={() => onTogglePreference(row.key)} label={row.label} />
+
+              {isOn && !isDisabled && (
+                <div className="mt-3 flex flex-col gap-1.5 border-t border-white/[0.06] pt-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-white/40">Keep this on for</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PREFERENCE_DURATIONS.map((duration) => {
+                      const isSelected = duration.ms === null && !expiresAt;
+                      return (
+                        <button
+                          key={duration.id}
+                          type="button"
+                          onClick={() => onSetDuration(row.key, duration.ms)}
+                          className={cx(
+                            "rounded-full px-2.5 py-1 text-xs font-medium",
+                            isSelected ? "bg-campus-gold text-campus-ink" : "bg-white/[0.06] text-white/60 hover:bg-white/[0.1]"
+                          )}
+                        >
+                          {duration.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {expiresAt && (
+                    <p className="text-[11px] text-white/45">
+                      Turns off automatically on {new Date(expiresAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}.
+                    </p>
+                  )}
+                </div>
+              )}
             </Card>
           );
         })}
