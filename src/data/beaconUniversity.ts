@@ -1,5 +1,6 @@
 import type {
   Building,
+  BuildingPhoto,
   Campus,
   CampusAlert,
   CampusEvent,
@@ -14,6 +15,17 @@ import type {
   WalkingPathEdge,
   WalkingPathNode
 } from "../types/campus";
+
+import longHallPhoto from "../assets/buildings/long-hall.jpg";
+import danielHallPhoto from "../assets/buildings/daniel-hall.jpg";
+import hendrixPhoto from "../assets/buildings/hendrix.jpg";
+import cooperLibraryPhoto from "../assets/buildings/cooper-library.jpg";
+import sikesHallPhoto from "../assets/buildings/sikes-hall.jpg";
+import oldMainPhoto from "../assets/buildings/old-main.jpg";
+import martinHallPhoto from "../assets/buildings/martin-hall.jpg";
+import redfernPhoto from "../assets/buildings/redfern.jpg";
+import littlejohnPhoto from "../assets/buildings/littlejohn.jpg";
+import memorialStadiumPhoto from "../assets/buildings/memorial-stadium.jpg";
 
 // ---------------------------------------------------------------------------
 // Data provenance helpers
@@ -43,6 +55,17 @@ function fixture(note?: string): DataProvenance {
   return {
     status: "development-fixture",
     note: note ?? "Illustrative placeholder for this prototype — not sourced from official campus data."
+  };
+}
+
+// Real photos of each named building, sourced from Wikimedia Commons (CC BY-SA 3.0,
+// Chris Pruitt / "Spyder Monkey", taken Aug 2010) — see each building's provenance
+// note for the corresponding Commons file page.
+function photo(src: string, fileName: string): BuildingPhoto {
+  return {
+    src,
+    credit: "Photo: Chris Pruitt, CC BY-SA 3.0, via Wikimedia Commons",
+    sourceUrl: `https://commons.wikimedia.org/wiki/File:${fileName}`
   };
 }
 
@@ -87,6 +110,7 @@ const buildings: Building[] = [
     nearbyParkingIds: ["lot-d", "lot-c"],
     landmarkNote: "Past Cooper Library, on the north side of Bowman Field",
     photoTone: "stone",
+    photo: photo(longHallPhoto, "CU_Long_Hall_Aug2010.jpg"),
     provenance: verified(
       "clemson.edu/science/academics/departments/biosci — Biological Sciences is housed primarily in Long Hall and Jordan Hall"
     )
@@ -118,6 +142,7 @@ const buildings: Building[] = [
     nearbyParkingIds: ["lot-d"],
     landmarkNote: "On the North Academic Quad, next to the Brooks Center",
     photoTone: "brick",
+    photo: photo(danielHallPhoto, "CU_Daniel_Hall_Aug2010.jpg"),
     provenance: verified(
       "clemsonwiki.com/wiki/Daniel_Hall — classroom building (English, foreign language, math, chemistry, speech, history), completed 1968"
     )
@@ -156,6 +181,7 @@ const buildings: Building[] = [
     nearbyParkingIds: ["lot-e", "lot-a"],
     landmarkNote: "East side of campus, the building with the big glass atrium",
     photoTone: "glass",
+    photo: photo(hendrixPhoto, "CU_Hendrix_Student_Center_Aug2010.jpg"),
     provenance: verified(
       "clemson.edu/studentaffairs/services/cre/venues/hsc.html — East side of campus; Michelin Career Center, East Side Food Court, 55 Exchange, Tiger Tech Shop",
       "Building, location, and named venues inside are real and cited. Hours, room numbers, and exact entrance layout are illustrative. Veteran & Military Engagement's placement here is a reasonable but unverified placement — Clemson's real Military & Veteran Engagement office location was not confirmed this session."
@@ -190,6 +216,7 @@ const buildings: Building[] = [
     nearbyParkingIds: ["lot-e"],
     landmarkNote: "The tall building overlooking Reflection Pond, just west of Bowman Field",
     photoTone: "stone",
+    photo: photo(cooperLibraryPhoto, "CU_Cooper_Library_Aug2010.jpg"),
     provenance: verified("libraries.clemson.edu — R.M. Cooper Library, 116 Sigma Drive, Clemson, SC 29634")
   },
   {
@@ -240,6 +267,7 @@ const buildings: Building[] = [
     nearbyParkingIds: ["lot-a", "lot-d"],
     landmarkNote: "The stone building south of Bowman Field, past Hendrix Student Center. ADA shuttles stage here on football gamedays.",
     photoTone: "stone",
+    photo: photo(sikesHallPhoto, "CU_Sikes_Hall_Aug2010_01.jpg"),
     provenance: verified(
       "Sikes Hall houses the President, Provost, Financial Aid, and Undergraduate Admissions (address: 105 Sikes Hall); ADA gameday shuttle stop per Post and Courier reporting on Memorial Stadium history"
     )
@@ -271,6 +299,7 @@ const buildings: Building[] = [
     nearbyParkingIds: ["lot-a"],
     landmarkNote: "The clock-tower building near the south campus entrance, next to Visitor Lot A",
     photoTone: "stone",
+    photo: photo(oldMainPhoto, "CU_Tillman_Hall_Aug2010_01.jpg"),
     provenance: verified(
       "Clemson News + Wikipedia — Tillman Hall was restored to its original name, Main Building ('Old Main'), by Clemson's Board of Trustees in 2020",
       "Building, history, and 2020 renaming are real and cited. This building is a historic landmark, not a functioning admissions office — search for Admissions to find Sikes Hall, where that office actually is. Interior layout and hours are illustrative."
@@ -299,6 +328,7 @@ const buildings: Building[] = [
     nearbyParkingIds: ["lot-e"],
     landmarkNote: "Along Union Walk, near Hendrix Student Center",
     photoTone: "brick",
+    photo: photo(martinHallPhoto, "CU_Martin_Hall_Aug2010.jpg"),
     provenance: verified(
       "clemsonwiki.com/wiki/Martin_Hall — home of the School of Mathematical and Statistical Sciences, comprised of Buildings M, O, and E"
     )
@@ -329,6 +359,7 @@ const buildings: Building[] = [
     nearbyParkingIds: ["lot-e"],
     landmarkNote: "East side of campus, past Martin Hall",
     photoTone: "glass",
+    photo: photo(redfernPhoto, "CU_Redfern_Health_Center_Aug2010.jpg"),
     provenance: verified("clemson.edu/studentaffairs/find-support/shs/ — Redfern Health Center, 735 McMillan Road, Clemson, SC 29634, 864-656-2233")
   },
   {
@@ -460,6 +491,7 @@ const buildings: Building[] = [
     nearbyParkingIds: ["lot-b", "lot-d"],
     landmarkNote: "Southeast corner of campus, next to Memorial Stadium",
     photoTone: "glass",
+    photo: photo(littlejohnPhoto, "CU_Littlejohn_Coliseum_Aug2010_01.jpg"),
     provenance: verified("en.wikipedia.org/wiki/Littlejohn_Coliseum — 9,000-seat arena opened 1968, named for James C. Littlejohn, Class of 1908")
   },
   {
@@ -485,6 +517,7 @@ const buildings: Building[] = [
     nearbyParkingIds: ["lot-b"],
     landmarkNote: "Far southeast corner of campus, past Littlejohn Coliseum",
     photoTone: "stone",
+    photo: photo(memorialStadiumPhoto, "CU_Memorial_Stadium_Aug2010.jpg"),
     provenance: verified(
       "en.wikipedia.org/wiki/Memorial_Stadium_(Clemson) — opened 1942; \"Death Valley\" nickname traced to a 1948 quote from Presbyterian College coach Lonnie McMillian"
     )

@@ -394,6 +394,7 @@ export default function BeaconCampusApp() {
             now={now}
             selectedMode={session.routeMode}
             onSelectMode={(mode) => patch({ routeMode: mode })}
+            onTogglePreference={togglePreference}
             onContinue={confirmRouteMode}
           />
         ) : (

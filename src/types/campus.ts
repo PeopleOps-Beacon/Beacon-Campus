@@ -126,8 +126,17 @@ export interface Building {
   nearbyParkingIds: string[];
   landmarkNote?: string;
   photoTone: "stone" | "brick" | "glass" | "green";
+  /** A real photo of the actual building, when one is available and confidently matched. Falls back to the illustration when absent. */
+  photo?: BuildingPhoto;
   /** Is this building real, and how much of this record is sourced vs. illustrative? */
   provenance: DataProvenance;
+}
+
+export interface BuildingPhoto {
+  /** Imported asset path (Vite resolves this to a hashed URL at build time). */
+  src: string;
+  credit: string;
+  sourceUrl: string;
 }
 
 export type ParkingEligibility = "visitor" | "student" | "faculty";

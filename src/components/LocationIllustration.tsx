@@ -1,5 +1,5 @@
 import type { Campus } from "../types/campus";
-import { BuildingIllustration } from "./BuildingIllustration";
+import { BuildingVisual } from "./BuildingVisual";
 
 // Outdoor/landmark scenes to pair with BuildingIllustration's building scenes —
 // together these let every step of a route show "what this spot looks like"
@@ -174,7 +174,7 @@ export function LocationIllustration({
   height?: number;
 }) {
   const building = locationId ? campus.buildings.find((b) => b.id === locationId) : undefined;
-  if (building) return <BuildingIllustration category={building.category} className={className} height={height} />;
+  if (building) return <BuildingVisual building={building} className={className} height={height} />;
 
   const scene = (locationId && LANDMARK_SCENES[locationId]) || "quad";
   return <OutdoorScene type={scene} className={className} height={height} />;

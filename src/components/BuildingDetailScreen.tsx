@@ -1,7 +1,7 @@
 import { AlertTriangle, Building2, Construction, DoorOpen, Navigation, SquareParking, Users } from "lucide-react";
 import { activeAlertsForBuilding, activeConstructionForBuilding, buildingOpenStatus } from "../lib/campusEngine";
 import type { Building, Campus } from "../types/campus";
-import { BuildingIllustration } from "./BuildingIllustration";
+import { BuildingVisual } from "./BuildingVisual";
 import { DataProvenanceBadge, DataProvenanceNote } from "./DataProvenanceBadge";
 import { Badge, Button, Card, IconTile, SectionHeading } from "./ui/Primitives";
 
@@ -39,7 +39,7 @@ export function BuildingDetailScreen({
   return (
     <div className="flex flex-col gap-5">
       <div className="relative overflow-hidden rounded-[var(--radius-card)]">
-        <BuildingIllustration category={building.category} height={160} className="w-full" />
+        <BuildingVisual building={building} height={160} className="w-full" />
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-white/70">{building.abbreviation}</p>
           <h1 className="text-xl font-bold text-white">{building.name}</h1>

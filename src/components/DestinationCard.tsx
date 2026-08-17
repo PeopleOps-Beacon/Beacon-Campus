@@ -1,7 +1,7 @@
 import { Accessibility, AlertTriangle, Building2, Construction, DoorOpen, Navigation, SquareParking } from "lucide-react";
 import { activeConstructionForBuilding } from "../lib/campusEngine";
 import type { DestinationIntel } from "../types/campus";
-import { BuildingIllustration } from "./BuildingIllustration";
+import { BuildingVisual } from "./BuildingVisual";
 import { CampusMap } from "./CampusMap";
 import { DataProvenanceBadge } from "./DataProvenanceBadge";
 import { Badge, Button, Card, IconTile, SectionHeading } from "./ui/Primitives";
@@ -27,7 +27,7 @@ export function DestinationCard({
 
   return (
     <div className="flex flex-col gap-5">
-      <BuildingIllustration category={building.category} height={130} className="w-full rounded-[var(--radius-card)]" />
+      <BuildingVisual building={building} height={130} className="w-full rounded-[var(--radius-card)]" />
       <CampusMap campus={campus} highlightBuildingId={building.id} startNodeId={startNodeId} height={180} />
 
       <div>

@@ -1,7 +1,7 @@
-import { Accessibility, Ear, SlidersHorizontal, Zap } from "lucide-react";
+import { Accessibility, Clock, Ear, SlidersHorizontal, Toilet, Users, Zap } from "lucide-react";
 import { getDestinationIntel, type DestinationTarget } from "../lib/campusEngine";
 import { ROUTE_MODE_META, effectivePreferences, type Campus, type CampusPreferences, type RouteMode } from "../types/campus";
-import { Button, Card, IconTile, cx } from "./ui/Primitives";
+import { Button, Card, IconTile, Toggle, cx } from "./ui/Primitives";
 
 const MODE_ICON: Record<RouteMode, typeof Zap> = {
   fastest: Zap,
@@ -12,6 +12,14 @@ const MODE_ICON: Record<RouteMode, typeof Zap> = {
 
 const MODES: RouteMode[] = ["fastest", "calm", "mobility", "custom"];
 
+const CUSTOM_ROWS: { key: keyof CampusPreferences; label: string; icon: typeof Accessibility }[] = [
+  { key: "stepFree", label: "Step-free only", icon: Accessibility },
+  { key: "avoidCrowds", label: "Avoid crowds", icon: Users },
+  { key: "calmRoute", label: "Calmer route", icon: Ear },
+  { key: "restroomStop", label: "Restroom stop", icon: Toilet },
+  { key: "extraTime", label: "Extra time", icon: Clock }
+];
+
 export function RouteModeScreen({
   campus,
   target,
@@ -20,6 +28,7 @@ export function RouteModeScreen({
   now,
   selectedMode,
   onSelectMode,
+  onTogglePreference,
   onContinue
 }: {
   campus: Campus;
@@ -29,6 +38,7 @@ export function RouteModeScreen({
   now: Date;
   selectedMode: RouteMode;
   onSelectMode: (mode: RouteMode) => void;
+  onTogglePreference: (key: keyof CampusPreferences) => void;
   onContinue: () => void;
 }) {
   return (
@@ -46,25 +56,42 @@ export function RouteModeScreen({
           const active = mode === selectedMode;
           const meta = ROUTE_MODE_META[mode];
           return (
-            <button key={mode} type="button" onClick={() => onSelectMode(mode)} className="text-left">
-              <Card
-                className={cx(
-                  "flex items-center gap-3",
-                  active ? "border-campus-gold/50 bg-campus-gold/[0.06]" : undefined
-                )}
-              >
-                <IconTile tone={active ? "gold" : "neutral"}>
-                  <Icon size={18} aria-hidden="true" />
-                </IconTile>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-white">{meta.label}</p>
-                  <p className="text-xs text-white/55">{mode === "custom" ? summarizeCustom(basePreferences) : meta.description}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-white">{intel ? `${intel.walkMinutes} min` : "—"}</p>
-                </div>
-              </Card>
-            </button>
+            <div key={mode} className="flex flex-col gap-2">
+              <button type="button" onClick={() => onSelectMode(mode)} className="text-left">
+                <Card
+                  className={cx(
+                    "flex items-center gap-3",
+                    active ? "border-campus-gold/50 bg-campus-gold/[0.06]" : undefined
+                  )}
+                >
+                  <IconTile tone={active ? "gold" : "neutral"}>
+                    <Icon size={18} aria-hidden="true" />
+                  </IconTile>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-white">{meta.label}</p>
+                    <p className="text-xs text-white/55">{mode === "custom" ? summarizeCustom(basePreferences) : meta.description}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-white">{intel ? `${intel.walkMinutes} min` : "—"}</p>
+                  </div>
+                </Card>
+              </button>
+
+              {mode === "custom" && active && (
+                <Card className="flex flex-col gap-0.5 border-campus-gold/20 bg-black/20 py-1">
+                  {CUSTOM_ROWS.map((row) => {
+                    const RowIcon = row.icon;
+                    return (
+                      <div key={row.key} className="flex items-center gap-3 py-2 first:pt-1 last:pb-1">
+                        <RowIcon size={15} className="shrink-0 text-white/50" aria-hidden="true" />
+                        <p className="min-w-0 flex-1 text-sm text-white/80">{row.label}</p>
+                        <Toggle checked={basePreferences[row.key] as boolean} onChange={() => onTogglePreference(row.key)} label={row.label} />
+                      </div>
+                    );
+                  })}
+                </Card>
+              )}
+            </div>
           );
         })}
       </div>
@@ -78,8 +105,8 @@ export function RouteModeScreen({
 
 function summarizeCustom(preferences: CampusPreferences): string {
   const active = Object.entries(preferences)
-    .filter(([, v]) => v)
+    .filter(([key, v]) => v && CUSTOM_ROWS.some((row) => row.key === key))
     .map(([k]) => k);
-  if (active.length === 0) return "No preferences set — same as Fastest.";
-  return `Active: ${active.length} preference${active.length > 1 ? "s" : ""} from your settings.`;
+  if (active.length === 0) return "Tap to set your own preferences.";
+  return `Active: ${active.length} preference${active.length > 1 ? "s" : ""} — tap to edit.`;
 }
