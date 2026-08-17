@@ -90,7 +90,7 @@ export function AccessibilityPanel({
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <p className="text-sm text-white/50">Beacon University</p>
+        <p className="text-sm text-white/50">{campus.universityName}</p>
         <h1 className="text-[var(--font-display)] font-bold text-white">Accessibility & Preferences</h1>
         <p className="mt-1 text-sm text-white/60">
           These preferences change how Beacon actually routes you — not just how the app looks.

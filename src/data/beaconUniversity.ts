@@ -6,6 +6,7 @@ import type {
   CampusService,
   ClassScheduleEntry,
   ConstructionNotice,
+  DataProvenance,
   OrientationItem,
   ParkingLot,
   QuickQuestion,
@@ -13,6 +14,37 @@ import type {
   WalkingPathEdge,
   WalkingPathNode
 } from "../types/campus";
+
+// ---------------------------------------------------------------------------
+// Data provenance helpers
+//
+// Every building/lot name in this file was checked against a live source
+// during this session (clemson.edu, Clemson Libraries/Housing, ClemsonWiki,
+// Wikipedia, and press coverage of the 2020 Tillman Hall -> Old Main
+// restoration) — see BEACON_UNIVERSITY.dataDisclosure.sources for the full
+// citation list. "verified" below means the building's real-world name and
+// role were confirmed this way. It does NOT mean the room numbers, hours,
+// entrance sides, map coordinates, or walking-path timings are official
+// Clemson facilities data — those remain illustrative placeholders for this
+// prototype, and are always marked as such in `note`.
+// ---------------------------------------------------------------------------
+
+function verified(source: string, note?: string): DataProvenance {
+  return {
+    status: "verified",
+    source,
+    note:
+      note ??
+      "Building name and role are real and cited. Room numbers, hours, entrance sides, and map position are illustrative for this prototype, not official Clemson facilities data."
+  };
+}
+
+function fixture(note?: string): DataProvenance {
+  return {
+    status: "development-fixture",
+    note: note ?? "Illustrative placeholder for this prototype — not sourced from official campus data."
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Buildings
@@ -23,11 +55,10 @@ const buildings: Building[] = [
     id: "richardson",
     name: "Long Hall",
     abbreviation: "LH",
-    aliases: ["long hall", "richardson", "science hall", "science building", "life sciences", "lh", "chem lab", "chemistry lab"],
+    aliases: ["long hall", "science hall", "science building", "biological sciences", "lh", "chem lab", "chemistry lab"],
     category: "academic",
-    description:
-      "Home to biology, chemistry, and physics labs, lecture halls, and the Science Tutoring Center.",
-    address: "210 Discovery Way",
+    description: "Home to Clemson's Department of Biological Sciences — labs, lecture halls, and the Science Tutoring Center.",
+    address: "Long Hall, Clemson, SC 29634",
     point: { x: 430, y: 260 },
     floors: 3,
     primaryEntranceId: "richardson-west",
@@ -44,7 +75,7 @@ const buildings: Building[] = [
       { id: "richardson-118", number: "118", floor: 1 }
     ],
     departments: [
-      { id: "dept-science", name: "Science Department", abbreviation: "SCI", floor: 2, hoursNote: "Monday–Friday, 9 AM–4 PM" }
+      { id: "dept-science", name: "Biological Sciences", abbreviation: "BIOSC", floor: 2, hoursNote: "Monday–Friday, 9 AM–4 PM" }
     ],
     amenities: [
       { id: "richardson-elevator", type: "elevator", label: "Elevator, 30 ft inside the south entrance", floor: 1 },
@@ -55,16 +86,19 @@ const buildings: Building[] = [
     hours: { opens: "07:00", closes: "22:00" },
     nearbyParkingIds: ["lot-d", "lot-c"],
     landmarkNote: "Past Cooper Library, on the north side of Bowman Field",
-    photoTone: "stone"
+    photoTone: "stone",
+    provenance: verified(
+      "clemson.edu/science/academics/departments/biosci — Biological Sciences is housed primarily in Long Hall and Jordan Hall"
+    )
   },
   {
     id: "jefferson",
-    name: "Strode Tower",
-    abbreviation: "ST",
-    aliases: ["strode tower", "strode", "jefferson", "academic center", "st", "english 101"],
+    name: "Daniel Hall",
+    abbreviation: "DH",
+    aliases: ["daniel hall", "daniel", "classroom building", "dh", "engl 1030", "english 1030"],
     category: "academic",
-    description: "General-education classrooms, seminar rooms, and the English & Humanities Department.",
-    address: "140 University Parkway",
+    description: "A general classroom building hosting English, foreign language, mathematics, chemistry, speech, and history courses.",
+    address: "Daniel Hall, Clemson, SC 29634",
     point: { x: 560, y: 210 },
     floors: 2,
     primaryEntranceId: "jefferson-north",
@@ -73,8 +107,8 @@ const buildings: Building[] = [
       { id: "jefferson-north", label: "North Entrance", side: "north", accessible: false, automaticDoor: false, point: { x: 560, y: 185 } },
       { id: "jefferson-south", label: "South Entrance", side: "south", accessible: true, automaticDoor: true, point: { x: 560, y: 235 } }
     ],
-    rooms: [{ id: "jefferson-115", number: "115", name: "English 101", floor: 1 }],
-    departments: [{ id: "dept-english", name: "English & Humanities Department", floor: 2, hoursNote: "Monday–Friday, 9 AM–4 PM" }],
+    rooms: [{ id: "jefferson-115", number: "130", name: "ENGL 1030 Classroom", floor: 1 }],
+    departments: [{ id: "dept-english", name: "English & Humanities Courses", floor: 1, hoursNote: "Classroom building — no front desk" }],
     amenities: [
       { id: "jefferson-elevator", type: "elevator", label: "Elevator near the south entrance", floor: 1 },
       { id: "jefferson-restroom", type: "restroom", label: "1st floor, main hallway", floor: 1 },
@@ -83,16 +117,19 @@ const buildings: Building[] = [
     hours: { opens: "07:00", closes: "21:00" },
     nearbyParkingIds: ["lot-d"],
     landmarkNote: "On the North Academic Quad, next to the Brooks Center",
-    photoTone: "brick"
+    photoTone: "brick",
+    provenance: verified(
+      "clemsonwiki.com/wiki/Daniel_Hall — classroom building (English, foreign language, math, chemistry, speech, history), completed 1968"
+    )
   },
   {
     id: "student-union",
     name: "Hendrix Student Center",
     abbreviation: "HSC",
-    aliases: ["hendrix", "hendrix student center", "student union", "student center", "the union", "hsc", "union", "bookstore", "career services"],
+    aliases: ["hendrix", "hendrix student center", "student center", "the union", "hsc", "career center", "food court"],
     category: "student-life",
-    description: "The social hub of campus — dining, the bookstore, career services, and student organization space.",
-    address: "1 Beacon Way",
+    description: "The social hub of East Campus — the Michelin Career Center, East Side Food Court, 55 Exchange ice cream shop, and Tiger Tech Shop.",
+    address: "Hendrix Student Center, Clemson, SC 29634",
     point: { x: 500, y: 445 },
     floors: 2,
     primaryEntranceId: "student-union-north",
@@ -104,11 +141,12 @@ const buildings: Building[] = [
     rooms: [{ id: "union-ballroom", number: "Ballroom", floor: 2 }],
     departments: [
       { id: "dept-student-affairs", name: "Student Affairs", floor: 1 },
-      { id: "dept-career-services", name: "Career Services", floor: 1 }
+      { id: "dept-career-services", name: "Michelin Career Center", floor: 1 },
+      { id: "dept-veterans", name: "Veteran & Military Engagement", floor: 1 }
     ],
     amenities: [
-      { id: "union-coffee", type: "coffee", label: "Beacon Grounds Coffee, 1st floor", floor: 1 },
-      { id: "union-dining", type: "dining", label: "Union Food Court, 1st floor", floor: 1 },
+      { id: "union-coffee", type: "coffee", label: "55 Exchange ice cream & coffee, 1st floor", floor: 1 },
+      { id: "union-dining", type: "dining", label: "East Side Food Court, 1st floor", floor: 1 },
       { id: "union-study", type: "study-space", label: "2nd floor lounge", floor: 2 },
       { id: "union-elevator", type: "elevator", label: "Elevator near the east entrance", floor: 1 },
       { id: "union-restroom", type: "restroom", label: "1st floor, near the food court", floor: 1 },
@@ -116,17 +154,21 @@ const buildings: Building[] = [
     ],
     hours: { opens: "06:00", closes: "23:59", note: "Open until midnight most nights" },
     nearbyParkingIds: ["lot-e", "lot-a"],
-    landmarkNote: "South side of the Green, the building with the big glass atrium",
-    photoTone: "glass"
+    landmarkNote: "East side of campus, the building with the big glass atrium",
+    photoTone: "glass",
+    provenance: verified(
+      "clemson.edu/studentaffairs/services/cre/venues/hsc.html — East side of campus; Michelin Career Center, East Side Food Court, 55 Exchange, Tiger Tech Shop",
+      "Building, location, and named venues inside are real and cited. Hours, room numbers, and exact entrance layout are illustrative. Veteran & Military Engagement's placement here is a reasonable but unverified placement — Clemson's real Military & Veteran Engagement office location was not confirmed this session."
+    )
   },
   {
     id: "library",
-    name: "Cooper Library",
+    name: "R.M. Cooper Library",
     abbreviation: "CL",
-    aliases: ["cooper library", "cooper", "library", "hamilton library", "cl", "the library", "testing center", "it help desk"],
+    aliases: ["cooper library", "cooper", "library", "r.m. cooper library", "cl", "testing center", "it help desk"],
     category: "library",
-    description: "The university library, quiet study floors, group study rooms, and the IT Help Desk.",
-    address: "88 Hamilton Court",
+    description: "Clemson's main library — quiet study floors, group study rooms, research help, and the IT Help Desk. Sits beside the campus's well-known Reflection Pond.",
+    address: "116 Sigma Drive, Clemson, SC 29634",
     point: { x: 415, y: 305 },
     floors: 4,
     primaryEntranceId: "library-main",
@@ -146,17 +188,29 @@ const buildings: Building[] = [
     ],
     hours: { opens: "07:00", closes: "01:00", note: "Extended hours during finals week" },
     nearbyParkingIds: ["lot-e"],
-    landmarkNote: "The tall building with the glass reading room, just west of Bowman Field",
-    photoTone: "stone"
+    landmarkNote: "The tall building overlooking Reflection Pond, just west of Bowman Field",
+    photoTone: "stone",
+    provenance: verified("libraries.clemson.edu — R.M. Cooper Library, 116 Sigma Drive, Clemson, SC 29634")
   },
   {
     id: "founders",
     name: "Sikes Hall",
     abbreviation: "SH",
-    aliases: ["sikes hall", "sikes", "founders", "administration building", "sh", "financial aid", "registrar", "advising"],
+    aliases: [
+      "sikes hall",
+      "sikes",
+      "administration building",
+      "sh",
+      "financial aid",
+      "registrar",
+      "advising",
+      "admissions",
+      "welcome center",
+      "admissions office"
+    ],
     category: "administration",
-    description: "Financial Aid, the Registrar, and Academic Advising all under one roof.",
-    address: "300 Founders Circle",
+    description: "Clemson's primary administration building — the offices of the President and Provost, Undergraduate Admissions, Financial Aid, and the Registrar.",
+    address: "105 Sikes Hall, Clemson, SC 29634",
     point: { x: 490, y: 545 },
     floors: 2,
     primaryEntranceId: "founders-south",
@@ -166,11 +220,13 @@ const buildings: Building[] = [
       { id: "founders-south", label: "South Entrance", side: "south", accessible: true, automaticDoor: true, point: { x: 490, y: 570 }, notes: "Ramp and elevator lobby" }
     ],
     rooms: [
+      { id: "founders-105", number: "105", name: "Undergraduate Admissions", floor: 1 },
       { id: "founders-220", number: "220", name: "Financial Aid Office", floor: 2 },
       { id: "founders-110", number: "110", name: "Registrar", floor: 1 },
       { id: "founders-215", number: "215", name: "Academic Advising", floor: 2 }
     ],
     departments: [
+      { id: "dept-admissions", name: "Undergraduate Admissions", floor: 1, roomId: "founders-105", hoursNote: "Open until 5:00 PM" },
       { id: "dept-financial-aid", name: "Financial Aid", floor: 2, roomId: "founders-220", hoursNote: "Open until 5:00 PM" },
       { id: "dept-registrar", name: "Registrar", floor: 1, roomId: "founders-110", hoursNote: "Open until 5:00 PM" },
       { id: "dept-advising", name: "Academic Advising", floor: 2, roomId: "founders-215", appointmentRequired: true, hoursNote: "Open until 5:00 PM" }
@@ -182,69 +238,79 @@ const buildings: Building[] = [
     ],
     hours: { opens: "08:00", closes: "17:00" },
     nearbyParkingIds: ["lot-a", "lot-d"],
-    landmarkNote: "The stone building south of Bowman Field, past Hendrix Student Center",
-    photoTone: "stone"
+    landmarkNote: "The stone building south of Bowman Field, past Hendrix Student Center. ADA shuttles stage here on football gamedays.",
+    photoTone: "stone",
+    provenance: verified(
+      "Sikes Hall houses the President, Provost, Financial Aid, and Undergraduate Admissions (address: 105 Sikes Hall); ADA gameday shuttle stop per Post and Courier reporting on Memorial Stadium history"
+    )
   },
   {
     id: "admissions",
     name: "Old Main",
     abbreviation: "OM",
-    aliases: ["old main", "admissions", "welcome center", "om", "admissions office", "campus tours", "visitor check-in"],
+    aliases: ["old main", "tillman hall", "tillman", "main building", "om", "clock tower", "campus tours"],
     category: "administration",
-    description: "Beacon University's historic clock-tower building — the first stop for prospective students and campus visitors, where tours start.",
-    address: "20 Welcome Plaza",
+    description:
+      "Clemson's original main academic building and clock tower on Bowman Field — known for decades as Tillman Hall before the university restored its original name, Main Building ('Old Main'), in 2020. Today it's a historic, ceremonial landmark and a favorite stop on campus tours.",
+    address: "Old Main, Bowman Field, Clemson, SC 29634",
     point: { x: 330, y: 605 },
     floors: 1,
     primaryEntranceId: "admissions-east",
     accessibleEntranceId: "admissions-east",
     entrances: [
-      { id: "admissions-east", label: "East Entrance", side: "east", accessible: true, automaticDoor: true, point: { x: 355, y: 605 }, notes: "Visitor check-in directly inside" },
+      { id: "admissions-east", label: "East Entrance", side: "east", accessible: true, automaticDoor: true, point: { x: 355, y: 605 } },
       { id: "admissions-west", label: "West Entrance", side: "west", accessible: false, automaticDoor: false, point: { x: 305, y: 605 } }
     ],
     rooms: [],
-    departments: [{ id: "dept-admissions", name: "Undergraduate Admissions", floor: 1, hoursNote: "Open until 5:00 PM" }],
+    departments: [],
     amenities: [
-      { id: "admissions-coffee", type: "coffee", label: "Visitor coffee station, lobby", floor: 1 },
       { id: "admissions-restroom", type: "restroom", label: "1st floor lobby", floor: 1 },
       { id: "admissions-arestroom", type: "accessible-restroom", label: "1st floor lobby", floor: 1 }
     ],
     hours: { opens: "08:30", closes: "17:00" },
     nearbyParkingIds: ["lot-a"],
     landmarkNote: "The clock-tower building near the south campus entrance, next to Visitor Lot A",
-    photoTone: "stone"
+    photoTone: "stone",
+    provenance: verified(
+      "Clemson News + Wikipedia — Tillman Hall was restored to its original name, Main Building ('Old Main'), by Clemson's Board of Trustees in 2020",
+      "Building, history, and 2020 renaming are real and cited. This building is a historic landmark, not a functioning admissions office — search for Admissions to find Sikes Hall, where that office actually is. Interior layout and hours are illustrative."
+    )
   },
   {
     id: "veterans",
-    name: "Military Heritage House",
-    abbreviation: "MHH",
-    aliases: ["military heritage house", "veterans", "veterans resource center", "mhh", "veterans office", "military services"],
-    category: "student-life",
-    description: "Support, community space, and benefits guidance for veteran and military-connected students.",
-    address: "45 Union Walk",
+    name: "Martin Hall",
+    abbreviation: "MTH",
+    aliases: ["martin hall", "martin", "math 1060", "mathematics", "statistics", "mth"],
+    category: "academic",
+    description: "Home to Clemson's School of Mathematical and Statistical Sciences — classrooms, computer labs, and faculty offices across Buildings M, O, and E.",
+    address: "Martin Hall, Clemson, SC 29634",
     point: { x: 610, y: 440 },
     floors: 1,
     primaryEntranceId: "veterans-main",
     accessibleEntranceId: "veterans-main",
     entrances: [{ id: "veterans-main", label: "Main Entrance", side: "north", accessible: true, automaticDoor: true, point: { x: 610, y: 415 } }],
-    rooms: [],
-    departments: [{ id: "dept-veterans", name: "Veterans & Military Services", floor: 1 }],
+    rooms: [{ id: "veterans-m102", number: "M-102", name: "MATH 1060 Classroom", floor: 1 }],
+    departments: [{ id: "dept-math", name: "Mathematical & Statistical Sciences", floor: 1 }],
     amenities: [
-      { id: "veterans-study", type: "study-space", label: "Lounge and study area", floor: 1 },
+      { id: "veterans-study", type: "study-space", label: "Computer lab, Building M", floor: 1 },
       { id: "veterans-restroom", type: "restroom", label: "1st floor", floor: 1 }
     ],
     hours: { opens: "08:00", closes: "18:00" },
     nearbyParkingIds: ["lot-e"],
-    landmarkNote: "East of Hendrix Student Center, along Union Walk",
-    photoTone: "brick"
+    landmarkNote: "Along Union Walk, near Hendrix Student Center",
+    photoTone: "brick",
+    provenance: verified(
+      "clemsonwiki.com/wiki/Martin_Hall — home of the School of Mathematical and Statistical Sciences, comprised of Buildings M, O, and E"
+    )
   },
   {
     id: "health-center",
     name: "Redfern Health Center",
     abbreviation: "RHC",
-    aliases: ["redfern", "redfern health center", "health center", "campus health", "clinic", "rhc", "counseling"],
+    aliases: ["redfern", "redfern health center", "health center", "campus health", "clinic", "rhc", "counseling", "caps"],
     category: "health-safety",
-    description: "Student medical care, counseling services, and wellness resources.",
-    address: "60 Wellness Drive",
+    description: "Student Health Services and Counseling and Psychological Services (CAPS) — medical care, urgent care, pharmacy, and confidential counseling.",
+    address: "735 McMillan Road, Clemson, SC 29634",
     point: { x: 760, y: 395 },
     floors: 1,
     primaryEntranceId: "health-main",
@@ -252,8 +318,8 @@ const buildings: Building[] = [
     entrances: [{ id: "health-main", label: "Main Entrance", side: "north", accessible: true, automaticDoor: true, point: { x: 760, y: 370 } }],
     rooms: [],
     departments: [
-      { id: "dept-health", name: "Student Health Services", floor: 1, hoursNote: "Urgent care until 8 PM weekdays" },
-      { id: "dept-counseling", name: "Counseling Services", floor: 1, appointmentRequired: true }
+      { id: "dept-health", name: "Student Health Services", floor: 1, hoursNote: "Urgent care until 8 PM weekdays", phone: "864-656-2233" },
+      { id: "dept-counseling", name: "Counseling and Psychological Services (CAPS)", floor: 1, appointmentRequired: true }
     ],
     amenities: [
       { id: "health-restroom", type: "restroom", label: "1st floor", floor: 1 },
@@ -261,17 +327,18 @@ const buildings: Building[] = [
     ],
     hours: { opens: "08:00", closes: "18:00", note: "Urgent care until 8 PM weekdays" },
     nearbyParkingIds: ["lot-e"],
-    landmarkNote: "East side of campus, past Military Heritage House",
-    photoTone: "glass"
+    landmarkNote: "East side of campus, past Martin Hall",
+    photoTone: "glass",
+    provenance: verified("clemson.edu/studentaffairs/find-support/shs/ — Redfern Health Center, 735 McMillan Road, Clemson, SC 29634, 864-656-2233")
   },
   {
     id: "public-safety",
-    name: "Edgar Public Safety Building",
+    name: "Clemson University Public Safety",
     abbreviation: "PS",
-    aliases: ["campus police", "public safety", "police", "security", "emergency"],
+    aliases: ["campus police", "public safety", "police", "cupd", "security", "emergency", "blue light phone"],
     category: "health-safety",
-    description: "Campus police, emergency management, and lost & found.",
-    address: "5 Safety Way",
+    description: "Clemson University Police, Fire & EMS, and Emergency Management. Not a replacement for 911 — for emergencies, always call 911 or use a campus Blue Light emergency phone.",
+    address: "Clemson, SC 29634",
     point: { x: 830, y: 350 },
     floors: 1,
     primaryEntranceId: "safety-main",
@@ -283,16 +350,19 @@ const buildings: Building[] = [
     hours: { opens: "00:00", closes: "23:59", note: "Open 24 hours, every day" },
     nearbyParkingIds: ["lot-e"],
     landmarkNote: "East edge of campus, near the Health Center",
-    photoTone: "stone"
+    photoTone: "stone",
+    provenance: fixture(
+      "Clemson University Public Safety (Police, Fire & EMS, Emergency Management) and campus Blue Light emergency phones are real — clemson.edu/cusafety. This record's specific building, address, and hours-of-day layout were not confirmed against an official source and are illustrative."
+    )
   },
   {
     id: "oak",
-    name: "Johnstone Hall",
-    abbreviation: "JH",
-    aliases: ["johnstone hall", "johnstone", "oak hall", "jh", "housing", "residence life"],
+    name: "Mickel Hall",
+    abbreviation: "MH",
+    aliases: ["mickel hall", "mickel", "mh", "housing", "residence life"],
     category: "residence",
-    description: "First-year residence hall on the west side of campus, near the dining hall.",
-    address: "10 Oak Row",
+    description: "A Clemson residence hall on the west side of campus, near the dining hall.",
+    address: "Mickel Hall, Clemson, SC 29634",
     point: { x: 190, y: 240 },
     floors: 4,
     primaryEntranceId: "oak-main",
@@ -311,16 +381,17 @@ const buildings: Building[] = [
     hours: { opens: "00:00", closes: "23:59", note: "Resident card access required after 10 PM" },
     nearbyParkingIds: ["lot-c"],
     landmarkNote: "West side of campus, on Dorm Row",
-    photoTone: "brick"
+    photoTone: "brick",
+    provenance: verified("housing.clemson.edu — Mickel Hall is a real Clemson residence hall")
   },
   {
     id: "pine",
-    name: "Manning Hall",
-    abbreviation: "MH",
-    aliases: ["manning hall", "manning", "pine hall", "mh", "pine dorm"],
+    name: "Lightsey Bridge I",
+    abbreviation: "LB1",
+    aliases: ["lightsey bridge", "lightsey bridge i", "lb1", "apartments"],
     category: "residence",
-    description: "Upper-class residence hall on the west side of campus.",
-    address: "12 Oak Row",
+    description: "An apartment-style residential community on the west side of campus.",
+    address: "Lightsey Bridge I, Clemson, SC 29634",
     point: { x: 190, y: 400 },
     floors: 4,
     primaryEntranceId: "pine-main",
@@ -338,16 +409,17 @@ const buildings: Building[] = [
     hours: { opens: "00:00", closes: "23:59", note: "Resident card access required after 10 PM" },
     nearbyParkingIds: ["lot-c"],
     landmarkNote: "West side of campus, on Dorm Row",
-    photoTone: "brick"
+    photoTone: "brick",
+    provenance: verified("housing.clemson.edu — Lightsey Bridge I is a real Clemson apartment-style residential community")
   },
   {
     id: "dining-commons",
-    name: "Schilletter Dining Hall",
-    abbreviation: "SDH",
-    aliases: ["schilletter", "schilletter dining hall", "dining hall", "dining commons", "cafeteria", "food court", "sdh", "dining"],
+    name: "Fresh Food Company",
+    abbreviation: "FFC",
+    aliases: ["fresh food company", "ffc", "dining hall", "dining commons", "cafeteria", "food court", "dining"],
     category: "dining",
-    description: "The main all-you-care-to-eat dining hall, open for breakfast, lunch, and dinner.",
-    address: "8 Commons Lane",
+    description: "Clemson's main all-you-care-to-eat dining hall, open for breakfast, lunch, and dinner.",
+    address: "Fresh Food Company, Clemson, SC 29634",
     point: { x: 270, y: 310 },
     floors: 1,
     primaryEntranceId: "dining-main",
@@ -362,16 +434,17 @@ const buildings: Building[] = [
     hours: { opens: "07:00", closes: "21:00", note: "Breakfast, lunch, and dinner service" },
     nearbyParkingIds: ["lot-c"],
     landmarkNote: "Between the residence halls and Bowman Field",
-    photoTone: "glass"
+    photoTone: "glass",
+    provenance: verified("housing.clemson.edu — Fresh Food Company is Clemson's main dining hall")
   },
   {
     id: "athletics-center",
     name: "Littlejohn Coliseum",
     abbreviation: "LJC",
-    aliases: ["littlejohn", "littlejohn coliseum", "athletics center", "gym", "basketball arena", "ljc", "rec center", "fitness center", "fike"],
+    aliases: ["littlejohn", "littlejohn coliseum", "basketball arena", "ljc", "gymnastics"],
     category: "athletics",
-    description: "The basketball arena, recreation and fitness center, and athletics offices.",
-    address: "1 Champion Way",
+    description: "A 9,000-seat multi-purpose arena, home to Clemson men's and women's basketball and women's gymnastics.",
+    address: "Littlejohn Coliseum, Clemson, SC 29634",
     point: { x: 760, y: 590 },
     floors: 2,
     primaryEntranceId: "athletics-main",
@@ -386,16 +459,17 @@ const buildings: Building[] = [
     hours: { opens: "06:00", closes: "23:00" },
     nearbyParkingIds: ["lot-b", "lot-d"],
     landmarkNote: "Southeast corner of campus, next to Memorial Stadium",
-    photoTone: "glass"
+    photoTone: "glass",
+    provenance: verified("en.wikipedia.org/wiki/Littlejohn_Coliseum — 9,000-seat arena opened 1968, named for James C. Littlejohn, Class of 1908")
   },
   {
     id: "stadium",
     name: "Memorial Stadium",
     abbreviation: "STAD",
-    aliases: ["memorial stadium", "death valley", "stadium", "football stadium", "game day"],
+    aliases: ["memorial stadium", "death valley", "stadium", "football stadium", "frank howard field"],
     category: "athletics",
-    description: "Known to students as \"Death Valley\" — home of Beacon University football and large campus ceremonies like Commencement.",
-    address: "2 Champion Way",
+    description: "Frank Howard Field at Memorial Stadium — known worldwide as \"Death Valley,\" home of Clemson football and Commencement.",
+    address: "Memorial Stadium, Clemson, SC 29634",
     point: { x: 860, y: 650 },
     floors: 1,
     primaryEntranceId: "stadium-main",
@@ -410,16 +484,19 @@ const buildings: Building[] = [
     hours: { opens: "00:00", closes: "23:59", note: "Open on event days only" },
     nearbyParkingIds: ["lot-b"],
     landmarkNote: "Far southeast corner of campus, past Littlejohn Coliseum",
-    photoTone: "stone"
+    photoTone: "stone",
+    provenance: verified(
+      "en.wikipedia.org/wiki/Memorial_Stadium_(Clemson) — opened 1942; \"Death Valley\" nickname traced to a 1948 quote from Presbyterian College coach Lonnie McMillian"
+    )
   },
   {
     id: "fine-arts",
     name: "Brooks Center for the Performing Arts",
     abbreviation: "BC",
-    aliases: ["brooks center", "brooks", "fine arts center", "fine arts", "theatre", "art building", "bc", "history 210"],
+    aliases: ["brooks center", "brooks", "performing arts", "theatre", "bc"],
     category: "arts",
-    description: "Theatre, galleries, music rehearsal space, and the Fine & Performing Arts Department.",
-    address: "75 Gallery Row",
+    description: "Clemson's performing arts venue — theatre, concerts, and recitals.",
+    address: "Brooks Center for the Performing Arts, Clemson, SC 29634",
     point: { x: 700, y: 190 },
     floors: 3,
     primaryEntranceId: "fine-arts-main",
@@ -428,8 +505,8 @@ const buildings: Building[] = [
       { id: "fine-arts-main", label: "Main Entrance", side: "north", accessible: false, automaticDoor: false, point: { x: 700, y: 165 } },
       { id: "fine-arts-accessible", label: "East Entrance", side: "east", accessible: true, automaticDoor: true, point: { x: 725, y: 190 } }
     ],
-    rooms: [{ id: "fine-arts-302", number: "302", name: "History 210 Lecture Room", floor: 3 }],
-    departments: [{ id: "dept-fine-arts", name: "Fine & Performing Arts Department", floor: 2 }],
+    rooms: [],
+    departments: [{ id: "dept-fine-arts", name: "Performing Arts Box Office", floor: 1 }],
     amenities: [
       { id: "fine-arts-elevator", type: "elevator", label: "Elevator, main lobby", floor: 1 },
       { id: "fine-arts-restroom", type: "restroom", label: "1st floor lobby", floor: 1 },
@@ -437,14 +514,20 @@ const buildings: Building[] = [
     ],
     hours: { opens: "08:00", closes: "22:00" },
     nearbyParkingIds: ["lot-d"],
-    landmarkNote: "North Academic Quad, next to Strode Tower",
-    photoTone: "stone"
+    landmarkNote: "North Academic Quad, next to Daniel Hall",
+    photoTone: "stone",
+    provenance: verified("clemson.edu/centers-institutes/brooks/ — Brooks Center for the Performing Arts")
   }
 ];
 
 // ---------------------------------------------------------------------------
 // Parking
 // ---------------------------------------------------------------------------
+// Clemson's real permit categories are Student, Employee, Visitor, EV,
+// Carpool, Football, Event/Departmental, Vendor, Metered, and Snow Complex
+// (clemson.edu/campus-life/parking/). No specific lot names/letters were
+// published on that overview page, so the lot names and rules below remain
+// illustrative placeholders modeled loosely on those real categories.
 
 const parkingLots: ParkingLot[] = [
   {
@@ -456,7 +539,8 @@ const parkingLots: ParkingLot[] = [
     freeMinutes: 120,
     accessibleSpaces: 6,
     notes: "No permit required for the first 2 hours. Accessible spaces available near the east exit.",
-    walkTimeMinutesTo: { admissions: 4, founders: 6, "student-union": 8 }
+    walkTimeMinutesTo: { admissions: 4, founders: 6, "student-union": 8 },
+    provenance: fixture("Illustrative visitor lot. Clemson's real permit categories (Visitor, Student, Employee, Event, etc.) are documented at clemson.edu/campus-life/parking/; this specific lot name and rules are not.")
   },
   {
     id: "lot-b",
@@ -469,7 +553,8 @@ const parkingLots: ParkingLot[] = [
     notes: "Closest visitor lot to Littlejohn Coliseum and Memorial Stadium.",
     walkTimeMinutesTo: { "athletics-center": 3, stadium: 6 },
     closed: true,
-    closureReason: "Closed today for event setup"
+    closureReason: "Closed today for event setup",
+    provenance: fixture()
   },
   {
     id: "lot-c",
@@ -478,8 +563,9 @@ const parkingLots: ParkingLot[] = [
     eligibility: ["student"],
     permitRequired: true,
     accessibleSpaces: 5,
-    notes: "Requires a valid Beacon University student parking permit.",
-    walkTimeMinutesTo: { oak: 2, pine: 3, "dining-commons": 2, richardson: 6 }
+    notes: "Requires a valid Clemson student parking permit.",
+    walkTimeMinutesTo: { oak: 2, pine: 3, "dining-commons": 2, richardson: 6 },
+    provenance: fixture()
   },
   {
     id: "lot-d",
@@ -488,8 +574,9 @@ const parkingLots: ParkingLot[] = [
     eligibility: ["faculty", "visitor"],
     permitRequired: true,
     accessibleSpaces: 6,
-    notes: "Faculty/staff permit required Monday–Friday, 7 AM–6 PM. Open to all after 6 PM and on weekends.",
-    walkTimeMinutesTo: { founders: 3, richardson: 5, jefferson: 6, "fine-arts": 5, "athletics-center": 6 }
+    notes: "Employee permit required Monday–Friday, 7 AM–6 PM. Open to all after 6 PM and on weekends.",
+    walkTimeMinutesTo: { founders: 3, richardson: 5, jefferson: 6, "fine-arts": 5, "athletics-center": 6 },
+    provenance: fixture()
   },
   {
     id: "lot-e",
@@ -499,8 +586,9 @@ const parkingLots: ParkingLot[] = [
     permitRequired: false,
     freeMinutes: 60,
     accessibleSpaces: 5,
-    notes: "Best option near Hendrix Student Center, Cooper Library, and Military Heritage House.",
-    walkTimeMinutesTo: { "student-union": 3, library: 4, veterans: 2, "health-center": 4 }
+    notes: "Best option near Hendrix Student Center, Cooper Library, and Martin Hall.",
+    walkTimeMinutesTo: { "student-union": 3, library: 4, veterans: 2, "health-center": 4 },
+    provenance: fixture()
   }
 ];
 
@@ -628,6 +716,16 @@ const alerts: CampusAlert[] = [
     startsAt: "2026-08-15T15:00:00-04:00",
     endsAt: "2026-08-15T22:00:00-04:00",
     active: true
+  },
+  {
+    id: "alert-first-year-parking-policy",
+    severity: "info",
+    title: "First-Year Parking Policy",
+    message:
+      "Beginning Fall 2026, first-year Clemson and Bridge students who live on campus may not park a personal vehicle on campus during the Fall and Spring semesters of their first year. See clemson.edu/campus-life/parking/ for details.",
+    affectedBuildingIds: [],
+    startsAt: "2026-08-01T00:00:00-04:00",
+    active: true
   }
 ];
 
@@ -671,11 +769,11 @@ const events: CampusEvent[] = [
     date: "2026-08-15",
     startTime: "10:00",
     endTime: "11:15",
-    venueBuildingId: "admissions",
-    description: "A guided walking tour of academic buildings, residence halls, dining, and athletics facilities.",
+    venueBuildingId: "founders",
+    description: "A guided walking tour of academic buildings, residence halls, dining, and athletics facilities, starting at Sikes Hall.",
     recommendedParkingId: "lot-a",
-    recommendedEntranceId: "admissions-east",
-    arrivalRecommendation: "Check in at Old Main 10 minutes before tour start."
+    recommendedEntranceId: "founders-south",
+    arrivalRecommendation: "Check in at Sikes Hall 10 minutes before tour start. Old Main, right on Bowman Field, is the tour's first stop."
   },
   {
     id: "evt-basketball-homecoming",
@@ -683,7 +781,7 @@ const events: CampusEvent[] = [
     date: "2026-08-15",
     startTime: "19:00",
     venueBuildingId: "athletics-center",
-    description: "Beacon University Basketball hosts its Homecoming game in Littlejohn Coliseum.",
+    description: "Clemson Basketball hosts its Homecoming game in Littlejohn Coliseum.",
     recommendedParkingId: "lot-d",
     recommendedEntranceId: "athletics-main",
     accessibilityNote: "Accessible seating available near both arena entrances — ask any usher for directions.",
@@ -696,7 +794,7 @@ const events: CampusEvent[] = [
     startTime: "10:00",
     endTime: "12:30",
     venueBuildingId: "stadium",
-    description: "University-wide Commencement ceremony for graduating students and their families.",
+    description: "University-wide Commencement ceremony for graduating students and their families at Memorial Stadium.",
     recommendedParkingId: "lot-b",
     recommendedEntranceId: "stadium-main",
     accessibilityNote: "Reserved accessible seating and drop-off is available at the Memorial Stadium Main Gate.",
@@ -721,7 +819,7 @@ const events: CampusEvent[] = [
     startTime: "09:00",
     endTime: "20:00",
     venueBuildingId: "student-union",
-    description: "A weekend of campus activities, athletics, and dining for families visiting Beacon University.",
+    description: "A weekend of campus activities, athletics, and dining for families visiting Clemson.",
     recommendedParkingId: "lot-a",
     recommendedEntranceId: "student-union-east",
     arrivalRecommendation: "Hendrix Student Center is home base for the weekend — pick up your schedule at the welcome table inside the east entrance."
@@ -732,11 +830,11 @@ const events: CampusEvent[] = [
     date: "2026-11-14",
     startTime: "09:30",
     endTime: "13:00",
-    venueBuildingId: "admissions",
-    description: "Information sessions, financial aid guidance, and campus tours for prospective students and families.",
+    venueBuildingId: "founders",
+    description: "Information sessions, financial aid guidance, and campus tours for prospective students and families, based out of Sikes Hall.",
     recommendedParkingId: "lot-a",
-    recommendedEntranceId: "admissions-east",
-    arrivalRecommendation: "Check in at Old Main first — financial aid drop-in sessions run all morning at Sikes Hall."
+    recommendedEntranceId: "founders-south",
+    arrivalRecommendation: "Check in at Sikes Hall — financial aid and admissions drop-in sessions run all morning."
   },
   {
     id: "evt-theatre",
@@ -744,7 +842,7 @@ const events: CampusEvent[] = [
     date: "2026-11-20",
     startTime: "19:30",
     venueBuildingId: "fine-arts",
-    description: "The Beacon University Theatre Department presents its fall mainstage production.",
+    description: "A mainstage production at the Brooks Center for the Performing Arts.",
     recommendedParkingId: "lot-d",
     recommendedEntranceId: "fine-arts-accessible",
     accessibilityNote: "Accessible seating is available — request it when you check in at the box office.",
@@ -757,19 +855,19 @@ const events: CampusEvent[] = [
 // ---------------------------------------------------------------------------
 
 const services: CampusService[] = [
-  { id: "svc-admissions", name: "Admissions", category: "admissions", buildingId: "admissions", departmentId: "dept-admissions", description: "Undergraduate admissions counseling and application support." },
+  { id: "svc-admissions", name: "Undergraduate Admissions", category: "admissions", buildingId: "founders", departmentId: "dept-admissions", description: "Undergraduate admissions counseling and application support, in Sikes Hall." },
   { id: "svc-financial-aid", name: "Financial Aid", category: "financial-aid", buildingId: "founders", departmentId: "dept-financial-aid", description: "Grants, loans, scholarships, and financial aid appeals." },
   { id: "svc-registrar", name: "Registrar", category: "registrar", buildingId: "founders", departmentId: "dept-registrar", description: "Transcripts, enrollment verification, and registration holds." },
   { id: "svc-advising", name: "Academic Advising", category: "advising", buildingId: "founders", departmentId: "dept-advising", description: "Course planning and degree progress advising.", appointmentRequired: true },
-  { id: "svc-career-services", name: "Career Services", category: "career-services", buildingId: "student-union", departmentId: "dept-career-services", description: "Resume help, interview prep, and employer connections." },
-  { id: "svc-veterans", name: "Veterans Services", category: "veterans", buildingId: "veterans", departmentId: "dept-veterans", description: "Benefits guidance and community space for veteran and military-connected students." },
+  { id: "svc-career-services", name: "Michelin Career Center", category: "career-services", buildingId: "student-union", departmentId: "dept-career-services", description: "Resume help, interview prep, and employer connections." },
+  { id: "svc-veterans", name: "Veteran & Military Engagement", category: "veterans", buildingId: "student-union", departmentId: "dept-veterans", description: "Benefits guidance and community space for veteran and military-connected students." },
   { id: "svc-student-affairs", name: "Student Affairs", category: "student-affairs", buildingId: "student-union", departmentId: "dept-student-affairs", description: "Student organizations, conduct, and campus life support." },
-  { id: "svc-counseling", name: "Counseling Services", category: "counseling", buildingId: "health-center", departmentId: "dept-counseling", description: "Confidential mental health counseling for students.", appointmentRequired: true },
+  { id: "svc-counseling", name: "Counseling and Psychological Services (CAPS)", category: "counseling", buildingId: "health-center", departmentId: "dept-counseling", description: "Confidential mental health counseling for students.", appointmentRequired: true },
   { id: "svc-health", name: "Student Health Services", category: "health", buildingId: "health-center", departmentId: "dept-health", description: "Primary care, urgent care, and immunizations." },
-  { id: "svc-police", name: "Campus Police", category: "police", buildingId: "public-safety", departmentId: "dept-safety", description: "Campus safety, escorts, and emergency response." },
+  { id: "svc-police", name: "Campus Police", category: "police", buildingId: "public-safety", departmentId: "dept-safety", description: "Campus safety, escorts, and emergency response. For emergencies, call 911." },
   { id: "svc-accessibility", name: "Accessibility Services", category: "accessibility", buildingId: "founders", description: "Accommodations, adaptive technology, and accessible routing support." },
   { id: "svc-it-help-desk", name: "IT Help Desk", category: "it-help-desk", buildingId: "library", description: "Tech support, laptop loaners, and Wi-Fi troubleshooting." },
-  { id: "svc-bookstore", name: "Beacon Bookstore", category: "bookstore", buildingId: "student-union", description: "Textbooks, course materials, and Beacon spirit wear." },
+  { id: "svc-bookstore", name: "Clemson University Barnes & Noble Bookstore", category: "bookstore", buildingId: "student-union", description: "Textbooks, course materials, and Clemson gear. (Real store is at the Douthit Hills Hub, 110 Cherry Road — placed here for this prototype's simplified map.)" },
   { id: "svc-dining", name: "Dining Services", category: "dining", buildingId: "dining-commons", description: "Meal plans, dining hours, and menus." },
   { id: "svc-housing", name: "Housing & Residence Life", category: "housing", buildingId: "oak", departmentId: "dept-housing", description: "Room assignments, move-in, and residence hall support." },
   { id: "svc-testing-center", name: "Testing Center", category: "testing-center", buildingId: "library", description: "Proctored exams and testing accommodations." },
@@ -778,40 +876,40 @@ const services: CampusService[] = [
 ];
 
 const jordanSchedule: ClassScheduleEntry[] = [
-  { id: "class-english", time: "09:00", course: "ENG 101", courseName: "English 101", buildingId: "jefferson", roomNumber: "115" },
-  { id: "class-bio", time: "10:30", course: "BIO 101", courseName: "Introduction to Biology", buildingId: "richardson", roomNumber: "204" },
-  { id: "class-history", time: "13:00", course: "HIST 210", courseName: "History 210", buildingId: "fine-arts", roomNumber: "302" }
+  { id: "class-english", time: "09:00", course: "ENGL 1030", courseName: "English Composition", buildingId: "jefferson", roomNumber: "130" },
+  { id: "class-math", time: "10:30", course: "MATH 1060", courseName: "College Algebra", buildingId: "veterans", roomNumber: "M-102" },
+  { id: "class-bio", time: "13:00", course: "BIO 101", courseName: "Introduction to Biology", buildingId: "richardson", roomNumber: "204" }
 ];
 
 const tourStops: TourStop[] = [
-  { id: "tour-admissions", order: 1, buildingId: "admissions", point: { x: 330, y: 605 }, title: "Old Main", description: "Your tour starts here — pick up a campus map and meet your tour guide." },
+  { id: "tour-old-main", order: 1, buildingId: "admissions", point: { x: 330, y: 605 }, title: "Old Main", description: "Your tour starts here — Clemson's original main building and clock tower, restored to its historic name in 2020." },
   { id: "tour-green", order: 2, point: { x: 500, y: 360 }, title: "Bowman Field", description: "The historic heart of campus. Most academic buildings and Hendrix Student Center open onto the field." },
-  { id: "tour-library", order: 3, buildingId: "library", point: { x: 415, y: 305 }, title: "Cooper Library", description: "Four floors of study space, research help, and the campus's best reading room view." },
-  { id: "tour-union", order: 4, buildingId: "student-union", point: { x: 500, y: 445 }, title: "Hendrix Student Center", description: "Dining, the bookstore, and the center of student life." },
-  { id: "tour-oak", order: 5, buildingId: "oak", point: { x: 190, y: 240 }, title: "Johnstone Hall", description: "A sample first-year residence hall — tour a model room if one is available." },
-  { id: "tour-dining", order: 6, buildingId: "dining-commons", point: { x: 270, y: 310 }, title: "Schilletter Dining Hall", description: "The main dining hall, with options for every diet and schedule." },
-  { id: "tour-richardson", order: 7, buildingId: "richardson", point: { x: 430, y: 260 }, title: "Long Hall", description: "Labs, lecture halls, and the Science Tutoring Center." },
-  { id: "tour-athletics", order: 8, buildingId: "athletics-center", point: { x: 760, y: 590 }, title: "Littlejohn Coliseum", description: "The basketball arena and recreation center — end your tour here with a look at Beacon Athletics." }
+  { id: "tour-library", order: 3, buildingId: "library", point: { x: 415, y: 305 }, title: "R.M. Cooper Library", description: "Four floors of study space, research help, and a view of the campus's well-known Reflection Pond." },
+  { id: "tour-union", order: 4, buildingId: "student-union", point: { x: 500, y: 445 }, title: "Hendrix Student Center", description: "Dining, the career center, and the heart of student life on East Campus." },
+  { id: "tour-oak", order: 5, buildingId: "oak", point: { x: 190, y: 240 }, title: "Mickel Hall", description: "A sample residence hall — tour a model room if one is available." },
+  { id: "tour-dining", order: 6, buildingId: "dining-commons", point: { x: 270, y: 310 }, title: "Fresh Food Company", description: "Clemson's main dining hall, with options for every diet and schedule." },
+  { id: "tour-richardson", order: 7, buildingId: "richardson", point: { x: 430, y: 260 }, title: "Long Hall", description: "Home to Biological Sciences — labs, lecture halls, and the Science Tutoring Center." },
+  { id: "tour-athletics", order: 8, buildingId: "athletics-center", point: { x: 760, y: 590 }, title: "Littlejohn Coliseum", description: "The 9,000-seat basketball arena — end your tour here with a look at Clemson Athletics." }
 ];
 
 const orientationItems: OrientationItem[] = [
-  { id: "orient-session", order: 1, icon: "schedule", title: "Your First Orientation Session", time: "09:00", buildingId: "student-union", description: "Welcome to Beacon University. Your first orientation session begins at 9:00 AM in Hendrix Student Center." },
+  { id: "orient-session", order: 1, icon: "schedule", title: "Your First Orientation Session", time: "09:00", buildingId: "student-union", description: "Welcome to Clemson. Your first orientation session begins at 9:00 AM in Hendrix Student Center." },
   { id: "orient-parking", order: 2, icon: "parking", title: "Where to Park", description: "Visitor parking is available in Lot A. From Lot A, Hendrix Student Center is about an 8 minute walk." },
   { id: "orient-checkin", order: 3, icon: "check-in", title: "Check-In", buildingId: "student-union", description: "Check-in is through the east entrance of Hendrix Student Center — look for the Orientation table just inside." },
-  { id: "orient-id", order: 4, icon: "id", title: "Student ID", buildingId: "student-union", description: "Get your Beacon University ID card at the Student Affairs desk, 1st floor." },
+  { id: "orient-id", order: 4, icon: "id", title: "Student ID", buildingId: "student-union", description: "Get your Clemson TigerOne ID card at the Student Affairs desk, 1st floor." },
   { id: "orient-financial-aid", order: 5, icon: "financial-aid", title: "Financial Aid", buildingId: "founders", description: "Sikes Hall, 2nd floor, Room 220. Bring a photo ID." },
-  { id: "orient-residence", order: 6, icon: "residence", title: "Your Residence Hall", buildingId: "oak", description: "Move into Johnstone Hall any time after 9:00 AM. Volunteers at the main entrance can help you carry belongings." },
-  { id: "orient-dining", order: 7, icon: "dining", title: "Dining", buildingId: "dining-commons", description: "Schilletter Dining Hall is open for breakfast, lunch, and dinner. Your student ID doubles as your meal card." },
-  { id: "orient-sessions", order: 8, icon: "sessions", title: "Afternoon Advising Sessions", time: "13:30", buildingId: "jefferson", description: "Academic advising sessions continue at 1:30 PM in Strode Tower." }
+  { id: "orient-residence", order: 6, icon: "residence", title: "Your Residence Hall", buildingId: "oak", description: "Move into Mickel Hall any time after 9:00 AM. Volunteers at the main entrance can help you carry belongings." },
+  { id: "orient-dining", order: 7, icon: "dining", title: "Dining", buildingId: "dining-commons", description: "Fresh Food Company is open for breakfast, lunch, and dinner. Your TigerOne ID doubles as your meal card." },
+  { id: "orient-sessions", order: 8, icon: "sessions", title: "Afternoon Advising Sessions", time: "13:30", buildingId: "jefferson", description: "Academic advising sessions continue at 1:30 PM in Daniel Hall." }
 ];
 
 const quickQuestions: QuickQuestion[] = [
-  { id: "qq-next-class", question: "Where is my next class?", answer: "Your next class is BIO 101 at 10:30 AM in Long Hall, Room 204 — about an 8 minute walk from here." },
-  { id: "qq-parking", question: "Where can I park?", answer: "Visitor parking is available in Lot A near Old Main, with no permit required for the first 2 hours." },
+  { id: "qq-next-class", question: "Where is my next class?", answer: "Your next class is MATH 1060 at 10:30 AM in Martin Hall, Room M-102 — about a 5 minute walk from here." },
+  { id: "qq-parking", question: "Where can I park?", answer: "Visitor parking is available in Lot A near Sikes Hall, with no permit required for the first 2 hours." },
   { id: "qq-restroom", question: "Where is the nearest restroom?", answer: "Open any building page to see restroom and accessible-restroom locations by floor — most buildings have one near the main entrance." },
-  { id: "qq-food", question: "Where can I eat?", answer: "Schilletter Dining Hall is open now, and Hendrix Student Center has a coffee shop and grab-and-go options." },
+  { id: "qq-food", question: "Where can I eat?", answer: "Fresh Food Company is open now, and Hendrix Student Center has the East Side Food Court and 55 Exchange." },
   { id: "qq-open-now", question: "What is open now?", answer: "Most academic buildings are open until 10 PM. Check a building's detail page for its exact hours." },
-  { id: "qq-admissions", question: "How do I get to Admissions?", answer: "Old Main is about a 4 minute walk from Visitor Lot A. Use the east entrance — visitor check-in is directly inside." },
+  { id: "qq-admissions", question: "How do I get to Admissions?", answer: "Undergraduate Admissions is in Sikes Hall, about a 6 minute walk from Visitor Lot A. Use the south entrance." },
   { id: "qq-events", question: "What events are happening today?", answer: "Check the Events tab for today's campus events, including recommended parking and entrances for each." },
   { id: "qq-late", question: "I'm running late — what's the fastest route to class?", answer: "Start your route now and Beacon will guide you the fastest way, calling out any entrance changes along the way." }
 ];
@@ -824,13 +922,14 @@ const aliasMap: Record<string, string> = {
   "bio 101": "room:richardson-204",
   "biology 101": "room:richardson-204",
   "room 204": "room:richardson-204",
-  "eng 101": "room:jefferson-115",
-  "english 101": "room:jefferson-115",
-  "hist 210": "room:fine-arts-302",
-  "history 210": "room:fine-arts-302",
+  "engl 1030": "room:jefferson-115",
+  "english composition": "room:jefferson-115",
+  "math 1060": "room:veterans-m102",
+  "college algebra": "room:veterans-m102",
   "financial aid": "service:svc-financial-aid",
   "visitor parking": "parking:lot-a",
   "basketball arena": "building:athletics-center",
+  "death valley": "building:stadium",
   "veterans office": "service:svc-veterans",
   "campus police": "service:svc-police",
   "graduation": "event:evt-graduation",
@@ -841,9 +940,9 @@ const aliasMap: Record<string, string> = {
 };
 
 export const BEACON_UNIVERSITY: Campus = {
-  id: "beacon-university",
-  universityName: "Beacon University",
-  shortName: "Beacon U",
+  id: "clemson-university",
+  universityName: "Clemson University",
+  shortName: "Clemson",
   tagline: "Know where you are. Know where you're going.",
   center: { x: 500, y: 400 },
   buildings,
@@ -857,7 +956,33 @@ export const BEACON_UNIVERSITY: Campus = {
   tourStops,
   orientationItems,
   quickQuestions,
-  aliasMap
+  aliasMap,
+  dataDisclosure: {
+    summary:
+      "Building names in this preview are real Clemson University buildings and landmarks, checked against clemson.edu and other public sources during development (see sources below). Room numbers, hours, exact entrance sides, map coordinates, parking lot names, and simulated alerts are illustrative placeholders for this prototype — not official Clemson facilities, accessibility, or parking data. Nothing in Beacon Campus should be used for real-world navigation, safety, or official campus information; for that, use Clemson's own resources at clemson.edu/campus-map/.",
+    sources: [
+      { label: "Clemson University — Campus Map", url: "https://www.clemson.edu/campus-map/" },
+      { label: "R.M. Cooper Library", url: "https://libraries.clemson.edu/" },
+      { label: "Student Health Services — Redfern Health Center", url: "https://www.clemson.edu/studentaffairs/find-support/shs/" },
+      { label: "Clemson Housing — Fresh Food Company, Mickel Hall, Lightsey Bridge I", url: "https://housing.clemson.edu/" },
+      { label: "Clemson University Bookstore", url: "https://www.clemson.edu/campus-life/campus-services/book-store/" },
+      { label: "Parking and Transportation", url: "https://www.clemson.edu/campus-life/parking/" },
+      { label: "Clemson University Public Safety", url: "https://www.clemson.edu/cusafety/" },
+      { label: "Hendrix Student Center", url: "https://www.clemson.edu/studentaffairs/services/cre/venues/hsc.html" },
+      {
+        label: "Old Main (formerly Tillman Hall) restored to original name, 2020",
+        url: "https://news.clemson.edu/clemson-trustees-approve-honors-college-name-change-request-authority-to-restore-original-name-of-tillman-hall/"
+      },
+      { label: "Sikes Hall — Locations Hub", url: "https://rs.locationshub.com/location_detail.aspx?id=027-10008866" },
+      { label: "Littlejohn Coliseum — Wikipedia", url: "https://en.wikipedia.org/wiki/Littlejohn_Coliseum" },
+      { label: "Memorial Stadium (\"Death Valley\") — Wikipedia", url: "https://en.wikipedia.org/wiki/Memorial_Stadium_(Clemson)" },
+      { label: "Fort Hill — Wikipedia", url: "https://en.wikipedia.org/wiki/Fort_Hill_(Clemson_University,_South_Carolina)" },
+      { label: "Martin Hall — ClemsonWiki", url: "https://clemsonwiki.com/wiki/Martin_Hall" },
+      { label: "Daniel Hall — ClemsonWiki", url: "https://clemsonwiki.com/wiki/Daniel_Hall" },
+      { label: "Brooks Center for the Performing Arts", url: "https://www.clemson.edu/centers-institutes/brooks/" },
+      { label: "Biological Sciences — Long Hall / Jordan Hall", url: "https://www.clemson.edu/science/academics/departments/biosci/about/" }
+    ]
+  }
 };
 
 export const JORDAN_SCHEDULE = jordanSchedule;
@@ -870,8 +995,8 @@ export const DEMO_PERSONA = {
 
 export const START_POINT_OPTIONS: { id: string; label: string }[] = [
   { id: "green", label: "Bowman Field (default)" },
-  { id: "oak", label: "Johnstone Hall" },
-  { id: "pine", label: "Manning Hall" },
+  { id: "oak", label: "Mickel Hall" },
+  { id: "pine", label: "Lightsey Bridge I" },
   { id: "student-union", label: "Hendrix Student Center" },
   { id: "lot-a", label: "Visitor Lot A" },
   { id: "lot-b", label: "Visitor Lot B" }

@@ -2,6 +2,34 @@
 // replace BEACON_UNIVERSITY (see src/data/beaconUniversity.ts) without changing
 // application code.
 
+// ---------------------------------------------------------------------------
+// Data provenance — structural, not just a code comment. Every building and
+// parking lot declares where its information came from, so the UI can never
+// silently present fabricated specifics as verified campus fact.
+// ---------------------------------------------------------------------------
+
+export type DataStatus =
+  /** Directly sourced from an official/authoritative reference this session (see `source`). */
+  | "verified"
+  /** Illustrative placeholder — building/landmark may be real, but this record's specifics (hours, room numbers, exact entrance sides, coordinates, etc.) are not sourced from an authoritative record. */
+  | "development-fixture"
+  /** Computed/estimated from other data (e.g. walk times from the simulated path graph) rather than sourced directly. */
+  | "derived";
+
+export interface DataProvenance {
+  status: DataStatus;
+  /** Citation for verified data — a URL or named source. */
+  source?: string;
+  /** Human-readable caveat, e.g. "Building is real; hours and room numbers are illustrative." */
+  note?: string;
+}
+
+export interface CitedSource {
+  label: string;
+  url: string;
+  retrievedNote?: string;
+}
+
 export type Persona =
   | "student"
   | "new-student"
@@ -98,6 +126,8 @@ export interface Building {
   nearbyParkingIds: string[];
   landmarkNote?: string;
   photoTone: "stone" | "brick" | "glass" | "green";
+  /** Is this building real, and how much of this record is sourced vs. illustrative? */
+  provenance: DataProvenance;
 }
 
 export type ParkingEligibility = "visitor" | "student" | "faculty";
@@ -114,6 +144,7 @@ export interface ParkingLot {
   walkTimeMinutesTo: Record<string, number>; // buildingId -> minutes
   closed?: boolean;
   closureReason?: string;
+  provenance: DataProvenance;
 }
 
 export interface WalkingPathNode {
@@ -260,6 +291,11 @@ export interface Campus {
   orientationItems: OrientationItem[];
   quickQuestions: QuickQuestion[];
   aliasMap: Record<string, string>; // lowercase alias -> canonical searchable id ("building:id", "room:id", etc.)
+  /** Overall data-integrity summary shown in Help — what's verified vs. illustrative, and where verified facts came from. */
+  dataDisclosure: {
+    summary: string;
+    sources: CitedSource[];
+  };
 }
 
 // --- Search & routing ---

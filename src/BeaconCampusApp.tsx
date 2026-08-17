@@ -316,6 +316,7 @@ export default function BeaconCampusApp() {
       alertCount={unreadCount}
       hideTabs={hideTabs}
       title={screenTitle(session.screen)}
+      subtitle={campus.universityName}
       onBack={showBack ? () => patch({ screen: previousScreenFor(session.screen), activeTab: "home" }) : undefined}
       onAssistant={() => patch({ screen: "assistant" })}
       onAdmin={() => patch({ screen: "admin" })}

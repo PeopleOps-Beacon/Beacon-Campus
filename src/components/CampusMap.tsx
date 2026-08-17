@@ -42,7 +42,7 @@ export function CampusMap({
     <svg
       viewBox="0 0 1000 700"
       role="img"
-      aria-label="Simulated map of Beacon University campus"
+      aria-label={`Simulated map of ${campus.universityName} campus`}
       style={{ height }}
       className="w-full rounded-[var(--radius-card)] border border-white/[0.06] bg-[#0a0d12]"
     >

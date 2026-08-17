@@ -9,6 +9,7 @@ export function MobileAppShell({
   alertCount = 0,
   hideTabs = false,
   title,
+  subtitle,
   onBack,
   onAssistant,
   onAdmin,
@@ -19,6 +20,7 @@ export function MobileAppShell({
   alertCount?: number;
   hideTabs?: boolean;
   title?: string;
+  subtitle: string;
   onBack?: () => void;
   onAssistant: () => void;
   onAdmin: () => void;
@@ -42,7 +44,7 @@ export function MobileAppShell({
           )}
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold leading-tight text-white">{title ?? "Beacon Campus"}</p>
-            {!title && <p className="truncate text-xs leading-tight text-white/50">Beacon University</p>}
+            {!title && <p className="truncate text-xs leading-tight text-white/50">{subtitle}</p>}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">

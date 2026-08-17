@@ -1,8 +1,10 @@
 import { useState } from "react";
 import {
   Accessibility,
+  BadgeCheck,
   Bell,
   Compass,
+  ExternalLink,
   HelpCircle,
   Mail,
   Navigation,
@@ -10,7 +12,7 @@ import {
   ShieldCheck
 } from "lucide-react";
 import type { Campus } from "../types/campus";
-import { Card, IconTile } from "./ui/Primitives";
+import { Card, IconTile, SectionHeading } from "./ui/Primitives";
 
 interface HelpTopic {
   id: string;
@@ -61,6 +63,12 @@ const TOPICS: HelpTopic[] = [
     icon: Compass,
     answer:
       "Ask Beacon (the sparkle icon) is a preview of quick answers to common questions, like where your next class is or where to park. It's a preview of a future natural-language assistant — for now it answers a curated set of questions."
+  },
+  {
+    id: "data",
+    question: "Is this real Clemson University data?",
+    icon: BadgeCheck,
+    answer: ""
   }
 ];
 
@@ -94,10 +102,32 @@ export function HelpScreen({ campus }: { campus: Campus }) {
                 </IconTile>
                 <span className="flex-1 text-sm font-medium text-white">{topic.question}</span>
               </button>
-              {open && <p className="border-t border-white/[0.06] px-4 py-3 text-sm leading-relaxed text-white/70">{topic.answer}</p>}
+              {open && (
+                <p className="border-t border-white/[0.06] px-4 py-3 text-sm leading-relaxed text-white/70">
+                  {topic.id === "data" ? campus.dataDisclosure.summary : topic.answer}
+                </p>
+              )}
             </Card>
           );
         })}
+      </div>
+
+      <div>
+        <SectionHeading title="Data Sources" />
+        <div className="flex flex-col gap-1.5">
+          {campus.dataDisclosure.sources.map((source) => (
+            <a
+              key={source.url}
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2.5 rounded-[var(--radius-control)] px-2.5 py-2 text-sm text-white/65 hover:bg-white/[0.06] hover:text-white"
+            >
+              <ExternalLink size={13} className="shrink-0 text-white/40" aria-hidden="true" />
+              <span className="min-w-0 truncate">{source.label}</span>
+            </a>
+          ))}
+        </div>
       </div>
 
       {itHelpDesk && (

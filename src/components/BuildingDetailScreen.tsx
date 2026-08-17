@@ -2,6 +2,7 @@ import { AlertTriangle, Building2, Construction, DoorOpen, Navigation, SquarePar
 import { activeAlertsForBuilding, activeConstructionForBuilding, buildingOpenStatus } from "../lib/campusEngine";
 import type { Building, Campus } from "../types/campus";
 import { BuildingIllustration } from "./BuildingIllustration";
+import { DataProvenanceBadge, DataProvenanceNote } from "./DataProvenanceBadge";
 import { Badge, Button, Card, IconTile, SectionHeading } from "./ui/Primitives";
 
 const AMENITY_LABEL: Record<string, string> = {
@@ -51,7 +52,10 @@ export function BuildingDetailScreen({
         <Badge tone={openStatus.isOpen ? "success" : "neutral"}>{openStatus.label}</Badge>
         <Badge tone="neutral">{building.address}</Badge>
         {building.floors > 1 && <Badge tone="neutral">{building.floors} floors</Badge>}
+        <DataProvenanceBadge provenance={building.provenance} />
       </div>
+
+      <DataProvenanceNote provenance={building.provenance} />
 
       {alerts.length > 0 && (
         <Card className="flex flex-col gap-2 border-campus-gold/25 bg-campus-gold/[0.06]">

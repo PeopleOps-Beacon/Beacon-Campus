@@ -3,6 +3,7 @@ import { activeConstructionForBuilding } from "../lib/campusEngine";
 import type { DestinationIntel } from "../types/campus";
 import { BuildingIllustration } from "./BuildingIllustration";
 import { CampusMap } from "./CampusMap";
+import { DataProvenanceBadge } from "./DataProvenanceBadge";
 import { Badge, Button, Card, IconTile, SectionHeading } from "./ui/Primitives";
 import type { Campus } from "../types/campus";
 
@@ -44,6 +45,7 @@ export function DestinationCard({
         <Badge tone="gold">{walkMinutes} min walk</Badge>
         <Badge tone={openStatus.isOpen ? "success" : "neutral"}>{openStatus.label}</Badge>
         {building.accessibleEntranceId === recommendedEntrance.id && <Badge tone="info">Step-free entrance</Badge>}
+        <DataProvenanceBadge provenance={building.provenance} />
       </div>
 
       {activeAlerts.length > 0 && (

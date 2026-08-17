@@ -48,14 +48,21 @@ const CATEGORIES: { id: CategoryId; label: string; icon: typeof Building2 }[] = 
 
 const STUDENT_PERSONAS: Persona[] = ["student", "new-student"];
 
-const PERSONA_GREETING: Record<Persona, string> = {
-  student: "Good to see you, Jordan.",
-  "new-student": "Welcome to Beacon University, Jordan.",
-  "prospective-student": "Welcome to Beacon University.",
-  parent: "Welcome to Beacon University.",
-  visitor: "Welcome to Beacon University.",
-  "faculty-staff": "Welcome back."
-};
+function personaGreeting(persona: Persona | null, universityName: string): string {
+  switch (persona) {
+    case "student":
+      return "Good to see you, Jordan.";
+    case "new-student":
+      return `Welcome to ${universityName}, Jordan.`;
+    case "faculty-staff":
+      return "Welcome back.";
+    case "prospective-student":
+    case "parent":
+    case "visitor":
+    default:
+      return `Welcome to ${universityName}.`;
+  }
+}
 
 function nextClass(now: Date): ClassScheduleEntry | null {
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -106,7 +113,7 @@ export function HomeScreen({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <p className="text-sm text-white/50">{persona ? PERSONA_GREETING[persona] : "Welcome to Beacon University."}</p>
+        <p className="text-sm text-white/50">{personaGreeting(persona, campus.universityName)}</p>
         <h1 className="text-[var(--font-display)] font-bold text-white">Where do you need to go?</h1>
       </div>
 

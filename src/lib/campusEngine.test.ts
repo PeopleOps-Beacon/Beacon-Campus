@@ -59,11 +59,34 @@ describe("recommendEntrance", () => {
     expect(rec.entrance.id).toBe(richardson.accessibleEntranceId);
   });
 
-  it("recommends Admissions' east entrance with no substitution needed", () => {
+  it("recommends Old Main's east entrance with no substitution needed", () => {
     const admissions = BEACON_UNIVERSITY.buildings.find((b) => b.id === "admissions")!;
     const rec = recommendEntrance(BEACON_UNIVERSITY, admissions);
     expect(rec.entrance.id).toBe("admissions-east");
     expect(rec.substituted).toBe(false);
+  });
+});
+
+describe("data provenance", () => {
+  it("gives every building and parking lot a provenance status", () => {
+    for (const building of BEACON_UNIVERSITY.buildings) {
+      expect(["verified", "development-fixture", "derived"]).toContain(building.provenance.status);
+    }
+    for (const lot of BEACON_UNIVERSITY.parkingLots) {
+      expect(["verified", "development-fixture", "derived"]).toContain(lot.provenance.status);
+    }
+  });
+
+  it("marks real, cited Clemson buildings as verified with a source", () => {
+    const sikes = BEACON_UNIVERSITY.buildings.find((b) => b.id === "founders")!;
+    expect(sikes.name).toBe("Sikes Hall");
+    expect(sikes.provenance.status).toBe("verified");
+    expect(sikes.provenance.source).toBeTruthy();
+  });
+
+  it("exposes a campus-level data disclosure with citations", () => {
+    expect(BEACON_UNIVERSITY.dataDisclosure.summary.length).toBeGreaterThan(0);
+    expect(BEACON_UNIVERSITY.dataDisclosure.sources.length).toBeGreaterThan(5);
   });
 });
 

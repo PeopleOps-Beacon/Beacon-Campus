@@ -32,7 +32,7 @@ export function DirectoryScreen({
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <p className="text-sm text-white/50">Beacon University</p>
+        <p className="text-sm text-white/50">{campus.universityName}</p>
         <h1 className="text-[var(--font-display)] font-bold text-white">{title}</h1>
       </div>
 

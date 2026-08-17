@@ -320,7 +320,7 @@ function EventsAdmin({ campus, actions }: { campus: Campus; actions: AdminAction
               date,
               startTime,
               venueBuildingId,
-              description: `${name.trim()} at ${campus.buildings.find((b) => b.id === venueBuildingId)?.name ?? "Beacon University"}.`,
+              description: `${name.trim()} at ${campus.buildings.find((b) => b.id === venueBuildingId)?.name ?? campus.universityName}.`,
               arrivalRecommendation: "Check the venue's building page for parking and entrance guidance."
             });
             setName("");

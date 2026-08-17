@@ -15,7 +15,7 @@ export function AlertsCenter({ campus, onSelectBuilding }: { campus: Campus; onS
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <p className="text-sm text-white/50">Beacon University</p>
+        <p className="text-sm text-white/50">{campus.universityName}</p>
         <h1 className="text-[var(--font-display)] font-bold text-white">Campus Alerts</h1>
       </div>
 
