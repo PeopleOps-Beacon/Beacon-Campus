@@ -37,8 +37,8 @@ export function Button({
   return (
     <button
       className={cx(
-        "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 text-sm font-semibold transition-colors duration-150 [transition-timing-function:var(--ease-premium)]",
-        "disabled:opacity-40 disabled:pointer-events-none",
+        "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 text-sm font-semibold transition-all duration-150 [transition-timing-function:var(--ease-premium)] active:scale-[0.97]",
+        "disabled:opacity-40 disabled:pointer-events-none disabled:active:scale-100",
         toneClasses[tone],
         className
       )}

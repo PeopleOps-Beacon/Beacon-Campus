@@ -435,6 +435,8 @@ export interface GuidanceStep {
   instruction: string;
   category: StepCategory;
   minutesFromStart: number;
+  /** Simulated walking distance from the previous step, in feet — estimated from a typical walking pace applied to the path graph's edge times, not a measured distance. */
+  feet?: number;
   /** Path node or building id this step is "at" — drives the per-step location illustration. */
   locationId?: string;
 }

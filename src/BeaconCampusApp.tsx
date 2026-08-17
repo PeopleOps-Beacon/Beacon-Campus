@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_START_NODE_ID, START_POINT_OPTIONS } from "./data/beaconUniversity";
+import { pulse } from "./lib/haptics";
 import {
   computeRoutePlan,
   destinationTargetFromSearchResult,
@@ -288,10 +289,12 @@ export default function BeaconCampusApp() {
   }
 
   function confirmRouteMode() {
+    pulse(15);
     patch({ screen: "navigation", navStepIndex: 0 });
   }
 
   function arrive() {
+    pulse([15, 60, 15]);
     patch({ screen: "arrival" });
   }
 

@@ -194,7 +194,7 @@ function Chip({ icon, label, onClick, active, accent }: { icon: ReactNode; label
       type="button"
       onClick={onClick}
       className={cx(
-        "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-[0_6px_16px_-8px_rgba(0,0,0,0.6)] backdrop-blur",
+        "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-[0_6px_16px_-8px_rgba(0,0,0,0.6)] backdrop-blur transition-transform active:scale-95",
         active || accent
           ? "border-campus-gold/50 bg-campus-gold/15 text-campus-gold"
           : "border-white/10 bg-campus-surface/90 text-white/80"

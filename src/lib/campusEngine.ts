@@ -457,6 +457,15 @@ function arrivalMessage(intel: DestinationIntel, simplified: boolean): string {
   return parts.join(" ");
 }
 
+/** Average adult walking pace (~3 mph), used only to turn a step's walk time into a simulated distance-in-feet readout — never a measured distance. */
+const WALK_FEET_PER_MINUTE = 265;
+
+/** Rounds a simulated distance to a sensible increment (nearest 25 ft) so it reads like an estimate, not a precise measurement. */
+function roundFeet(feet: number): number {
+  if (feet <= 0) return 0;
+  return Math.max(25, Math.round(feet / 25) * 25);
+}
+
 export function getGuidanceSteps(
   campus: Campus,
   intel: DestinationIntel,
@@ -468,6 +477,7 @@ export function getGuidanceSteps(
   const steps: GuidanceStep[] = [];
   let order = 0;
   let minutesFromStart = 0;
+  let feetSinceLastStep = 0;
 
   if (intel.entranceSubstituted && intel.activeAlerts.length > 0) {
     const alert = intel.activeAlerts.find((a) => a.substituteEntranceId === intel.recommendedEntrance.id);
@@ -497,7 +507,9 @@ export function getGuidanceSteps(
   for (let i = 1; i < path.length; i++) {
     const nodeId = path[i];
     const prevId = path[i - 1];
-    minutesFromStart += edgeMinutes(prevId, nodeId) * timeScale;
+    const legMinutes = edgeMinutes(prevId, nodeId) * timeScale;
+    minutesFromStart += legMinutes;
+    feetSinceLastStep += legMinutes * WALK_FEET_PER_MINUTE;
     const isDestination = i === path.length - 1;
     const node = campus.pathNodes.find((n) => n.id === nodeId);
 
@@ -508,14 +520,17 @@ export function getGuidanceSteps(
         instruction: simplified ? `${intel.building.name} is just ahead.` : `${intel.building.name} will be just ahead.`,
         category: "landmark",
         minutesFromStart: Math.round(minutesFromStart),
+        feet: roundFeet(feetSinceLastStep),
         locationId: intel.buildingId
       });
+      feetSinceLastStep = 0;
       steps.push({
         id: `step-${order}`,
         order: order++,
         instruction: simplified ? `Go in the ${intel.recommendedEntrance.label.toLowerCase()}.` : `Use the ${intel.recommendedEntrance.label.toLowerCase()}.`,
         category: "direction",
         minutesFromStart: Math.round(minutesFromStart),
+        feet: 0,
         locationId: intel.buildingId
       });
     } else if (opts.waypoint && nodeId === opts.waypoint.building.id) {
@@ -525,8 +540,10 @@ export function getGuidanceSteps(
         instruction: opts.waypoint.note,
         category: "accessibility",
         minutesFromStart: Math.round(minutesFromStart),
+        feet: roundFeet(feetSinceLastStep),
         locationId: opts.waypoint.building.id
       });
+      feetSinceLastStep = 0;
     } else if (node?.isLandmark) {
       const verb = i === 1 ? "Head toward" : "Continue past";
       steps.push({
@@ -535,8 +552,10 @@ export function getGuidanceSteps(
         instruction: simplified ? `Pass ${node.label}.` : `${verb} ${node.label}.`,
         category: "landmark",
         minutesFromStart: Math.round(minutesFromStart),
+        feet: roundFeet(feetSinceLastStep),
         locationId: nodeId
       });
+      feetSinceLastStep = 0;
     }
   }
 

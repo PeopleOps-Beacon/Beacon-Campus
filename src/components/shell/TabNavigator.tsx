@@ -35,7 +35,7 @@ export function TabNavigator({
             aria-current={active ? "page" : undefined}
             onClick={() => onChange(tab.id)}
             className={cx(
-              "relative flex min-h-[56px] flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors",
+              "relative flex min-h-[56px] flex-col items-center justify-center gap-1 text-[11px] font-medium transition-all active:scale-90",
               active ? "text-campus-gold" : "text-white/50 hover:text-white/80"
             )}
           >

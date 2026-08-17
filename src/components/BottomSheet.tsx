@@ -31,9 +31,9 @@ export function BottomSheet({
         onClick={onToggleExpanded}
         aria-expanded={expanded}
         aria-label={expanded ? "Collapse details" : "Expand details"}
-        className="flex shrink-0 flex-col items-center gap-2 pb-1 pt-2.5"
+        className="group flex shrink-0 flex-col items-center gap-2 pb-1 pt-2.5"
       >
-        <span className="h-1 w-9 rounded-full bg-white/20" aria-hidden="true" />
+        <span className="h-1 w-9 rounded-full bg-white/20 transition-transform group-active:scale-x-75" aria-hidden="true" />
       </button>
       <div className="overflow-y-auto px-4 pb-[max(0.9rem,env(safe-area-inset-bottom))]">{expanded ? children : peek}</div>
     </div>
