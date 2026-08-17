@@ -1,37 +1,45 @@
-import beaconLogoFull from "../assets/beacon-logo-full.png";
+import beaconEmblem from "../assets/beacon-emblem.png";
 
 export function LandingScreen({ onBegin }: { onBegin: () => void }) {
   return (
-    <div className="relative flex h-full flex-col items-center justify-between overflow-hidden bg-campus-ink px-8 pb-10 pt-[max(3rem,env(safe-area-inset-top))]">
+    <div className="relative flex h-full flex-col items-center justify-between overflow-hidden bg-campus-ink px-8 pb-12 pt-[max(3rem,env(safe-area-inset-top))]">
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-2/3 opacity-70"
-        style={{ background: "radial-gradient(60% 50% at 50% 0%, rgba(245,183,47,0.16), transparent 70%)" }}
+        className="pointer-events-none absolute inset-x-0 top-0 h-full opacity-90"
+        style={{ background: "radial-gradient(55% 40% at 50% 32%, rgba(245,183,47,0.16), transparent 70%)" }}
         aria-hidden="true"
       />
 
       <div />
 
       <div className="relative flex flex-col items-center text-center">
-        <img
-          src={beaconLogoFull}
-          alt="Beacon"
-          className="w-[280px] max-w-full drop-shadow-[0_20px_60px_rgba(245,183,47,0.3)]"
-        />
-        <p className="-mt-2 text-lg font-semibold uppercase tracking-[0.35em] text-campus-gold">Campus</p>
-        <p className="mt-4 max-w-[280px] text-[15px] leading-relaxed text-white/55">
-          Know where you are. Know where you're going.
-        </p>
+        <img src={beaconEmblem} alt="" className="w-24 drop-shadow-[0_10px_30px_rgba(245,183,47,0.4)]" />
+        <h1
+          className="mt-5 text-[2.15rem] font-bold leading-none tracking-[0.1em]"
+          style={{
+            backgroundImage: "linear-gradient(180deg, #fff3cf 0%, #f5b72f 45%, #b9791a 100%)",
+            WebkitBackgroundClip: "text",
+            backgroundClip: "text",
+            color: "transparent"
+          }}
+        >
+          BEACON
+        </h1>
+        <p className="mt-1.5 text-sm font-semibold uppercase tracking-[0.5em] text-campus-gold/90">Campus</p>
       </div>
 
-      <div className="relative flex w-full flex-col items-center gap-4">
+      <div className="relative flex w-full flex-col items-center gap-9">
+        <p className="max-w-[280px] text-base leading-relaxed text-white">
+          Every <span className="text-campus-gold">Journey</span>. Every <span className="text-campus-gold">Ability</span>. Every{" "}
+          <span className="text-campus-gold">Traveler</span>.
+        </p>
+
         <button
           type="button"
           onClick={onBegin}
-          className="min-h-[52px] w-full rounded-[var(--radius-pill)] bg-campus-gold text-[15px] font-semibold text-campus-ink shadow-[0_12px_32px_-8px_rgba(245,183,47,0.5)] transition-transform duration-150 [transition-timing-function:var(--ease-premium)] active:scale-[0.98]"
+          className="min-h-[52px] w-full rounded-[var(--radius-pill)] border border-campus-gold bg-transparent text-[15px] font-semibold uppercase tracking-[0.25em] text-campus-gold transition-colors duration-150 [transition-timing-function:var(--ease-premium)] active:bg-campus-gold/10"
         >
           Begin
         </button>
-        <p className="text-[11px] uppercase tracking-[0.14em] text-white/30">Beacon University · Wayfinding</p>
       </div>
     </div>
   );
