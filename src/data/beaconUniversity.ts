@@ -4,10 +4,12 @@ import type {
   Campus,
   CampusAlert,
   CampusEvent,
+  CampusFacility,
   CampusService,
   ClassScheduleEntry,
   ConstructionNotice,
   DataProvenance,
+  FacilityCategory,
   OrientationItem,
   ParkingLot,
   QuickQuestion,
@@ -15,6 +17,7 @@ import type {
   WalkingPathEdge,
   WalkingPathNode
 } from "../types/campus";
+import { ADDABLE_STOP_CATEGORIES } from "../types/campus";
 
 import longHallPhoto from "../assets/buildings/long-hall.jpg";
 import danielHallPhoto from "../assets/buildings/daniel-hall.jpg";
@@ -176,7 +179,9 @@ const buildings: Building[] = [
       { id: "union-study", type: "study-space", label: "2nd floor lounge", floor: 2 },
       { id: "union-elevator", type: "elevator", label: "Elevator near the east entrance", floor: 1 },
       { id: "union-restroom", type: "restroom", label: "1st floor, near the food court", floor: 1 },
-      { id: "union-arestroom", type: "accessible-restroom", label: "1st floor, near the east entrance", floor: 1 }
+      { id: "union-arestroom", type: "accessible-restroom", label: "1st floor, near the east entrance", floor: 1 },
+      { id: "union-service-animal", type: "service-animal-relief", label: "Outdoor relief area, east entrance", floor: 1 },
+      { id: "union-lactation", type: "lactation-room", label: "1st floor, near Student Affairs", floor: 1 }
     ],
     hours: { opens: "06:00", closes: "23:59", note: "Open until midnight most nights" },
     nearbyParkingIds: ["lot-e", "lot-a"],
@@ -211,7 +216,8 @@ const buildings: Building[] = [
       { id: "library-study-2", type: "study-space", label: "Quiet study, 3rd and 4th floors", floor: 3 },
       { id: "library-printing", type: "printing", label: "Print/copy station, 1st floor", floor: 1 },
       { id: "library-restroom", type: "restroom", label: "1st floor, near the main entrance", floor: 1 },
-      { id: "library-arestroom", type: "accessible-restroom", label: "1st floor, near the east entrance", floor: 1 }
+      { id: "library-arestroom", type: "accessible-restroom", label: "1st floor, near the east entrance", floor: 1 },
+      { id: "library-service-animal", type: "service-animal-relief", label: "Outdoor relief area, east entrance", floor: 1 }
     ],
     hours: { opens: "07:00", closes: "01:00", note: "Extended hours during finals week" },
     nearbyParkingIds: ["lot-e"],
@@ -262,7 +268,8 @@ const buildings: Building[] = [
     amenities: [
       { id: "founders-elevator", type: "elevator", label: "Elevator lobby, inside the south entrance", floor: 1 },
       { id: "founders-restroom", type: "restroom", label: "1st floor, near the north entrance", floor: 1 },
-      { id: "founders-arestroom", type: "accessible-restroom", label: "2nd floor, near the elevator", floor: 2 }
+      { id: "founders-arestroom", type: "accessible-restroom", label: "2nd floor, near the elevator", floor: 2 },
+      { id: "founders-lactation", type: "lactation-room", label: "2nd floor, near Financial Aid", floor: 2 }
     ],
     hours: { opens: "08:00", closes: "17:00" },
     nearbyParkingIds: ["lot-a", "lot-d"],
@@ -981,6 +988,45 @@ const aliasMap: Record<string, string> = {
   "nearest bathroom": "amenity:restroom"
 };
 
+/**
+ * Derives routable facility waypoints (restroom, accessible restroom,
+ * service animal relief, lactation room) from each building's existing
+ * amenities list, so there is exactly one source of truth for "does this
+ * building have an accessible restroom" — the amenity itself — rather than a
+ * second hand-authored list that could drift out of sync.
+ *
+ * Service animal relief and lactation room entries were added to a small
+ * number of buildings specifically for this feature and are not sourced from
+ * an official Clemson accessibility resource; they're marked as development
+ * fixtures regardless of the building's own verified status, same as any
+ * other illustrative interior specific in this file (see dataDisclosure).
+ */
+function facilitiesFromAmenities(allBuildings: Building[]): CampusFacility[] {
+  const addable = new Set<FacilityCategory>(ADDABLE_STOP_CATEGORIES);
+  return allBuildings.flatMap((building) =>
+    building.amenities
+      .filter((amenity) => addable.has(amenity.type as FacilityCategory))
+      .map((amenity) => {
+        const category = amenity.type as FacilityCategory;
+        const provenance: DataProvenance =
+          category === "service-animal-relief" || category === "lactation-room"
+            ? {
+                status: "development-fixture",
+                note: "Added for this prototype's route-waypoint feature — not sourced from an official Clemson accessibility resource."
+              }
+            : building.provenance;
+        return {
+          id: `facility-${amenity.id}`,
+          category,
+          name: `${building.name} — ${amenity.label}`,
+          buildingId: building.id,
+          floor: amenity.floor,
+          provenance
+        };
+      })
+  );
+}
+
 export const BEACON_UNIVERSITY: Campus = {
   id: "clemson-university",
   universityName: "Clemson University",
@@ -998,6 +1044,7 @@ export const BEACON_UNIVERSITY: Campus = {
   tourStops,
   orientationItems,
   quickQuestions,
+  facilities: facilitiesFromAmenities(buildings),
   aliasMap,
   dataDisclosure: {
     summary:

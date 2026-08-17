@@ -80,6 +80,7 @@ interface SessionState {
   activeParkingLotId: string | null;
   sheetExpanded: boolean;
   routeMode: RouteMode;
+  activeWaypointFacilityIds: string[];
   activeEventId: string | null;
   navStepIndex: number;
   directoryFilter: { title: string; category?: BuildingCategory } | null;
@@ -97,6 +98,7 @@ const DEFAULT_SESSION: SessionState = {
   activeParkingLotId: null,
   sheetExpanded: false,
   routeMode: "fastest",
+  activeWaypointFacilityIds: [],
   activeEventId: null,
   navStepIndex: 0,
   directoryFilter: null,
@@ -198,18 +200,20 @@ export default function BeaconCampusApp() {
     return getDestinationIntel(campus, session.activeDestinationTarget, {
       fromNodeId: session.startNodeId,
       preferences: activeRoutePreferences,
+      waypointFacilityIds: session.activeWaypointFacilityIds,
       now
     });
-  }, [campus, session.activeDestinationTarget, session.startNodeId, activeRoutePreferences, now]);
+  }, [campus, session.activeDestinationTarget, session.startNodeId, activeRoutePreferences, session.activeWaypointFacilityIds, now]);
 
   const routePlan = useMemo(() => {
     if (!session.activeDestinationTarget) return null;
     return computeRoutePlan(campus, session.activeDestinationTarget, {
       fromNodeId: session.startNodeId,
       preferences: activeRoutePreferences,
+      waypointFacilityIds: session.activeWaypointFacilityIds,
       now
     });
-  }, [campus, session.activeDestinationTarget, session.startNodeId, activeRoutePreferences, now]);
+  }, [campus, session.activeDestinationTarget, session.startNodeId, activeRoutePreferences, session.activeWaypointFacilityIds, now]);
 
   const activeEvent: CampusEvent | undefined = session.activeEventId ? campus.events.find((e) => e.id === session.activeEventId) : undefined;
 
@@ -234,7 +238,8 @@ export default function BeaconCampusApp() {
       activeBuildingId: target.buildingId,
       activeParkingLotId: null,
       sheetExpanded: false,
-      routeMode: "custom"
+      routeMode: "custom",
+      activeWaypointFacilityIds: []
     });
   }
 
@@ -250,8 +255,39 @@ export default function BeaconCampusApp() {
     });
   }
 
+  function addWaypoint(facilityId: string) {
+    if (session.activeWaypointFacilityIds.includes(facilityId)) return;
+    patch({ activeWaypointFacilityIds: [...session.activeWaypointFacilityIds, facilityId] });
+  }
+
+  function removeWaypoint(facilityId: string) {
+    patch({ activeWaypointFacilityIds: session.activeWaypointFacilityIds.filter((id) => id !== facilityId) });
+  }
+
+  /**
+   * Adding a stop mid-navigation recalculates from where the traveler
+   * currently is, not the original start point, and preserves the final
+   * destination. Any waypoint already passed is dropped — routing back to it
+   * would be wrong — so only the newly chosen stop remains ahead.
+   */
+  function addWaypointDuringNavigation(facilityId: string) {
+    const currentStep = routePlan?.steps[session.navStepIndex];
+    const currentNodeId = currentStep?.locationId ?? session.startNodeId;
+    patch({
+      startNodeId: currentNodeId,
+      activeWaypointFacilityIds: [facilityId],
+      navStepIndex: 0
+    });
+  }
+
   function closeSheet() {
-    patch({ activeDestinationTarget: null, activeBuildingId: null, activeParkingLotId: null, sheetExpanded: false });
+    patch({
+      activeDestinationTarget: null,
+      activeBuildingId: null,
+      activeParkingLotId: null,
+      sheetExpanded: false,
+      activeWaypointFacilityIds: []
+    });
   }
 
   function handleSelectSearchResult(result: SearchResult) {
@@ -301,7 +337,8 @@ export default function BeaconCampusApp() {
       startNodeId: session.activeDestinationTarget?.buildingId ?? session.startNodeId,
       activeDestinationTarget: null,
       activeParkingLotId: null,
-      sheetExpanded: false
+      sheetExpanded: false,
+      activeWaypointFacilityIds: []
     });
   }
 
@@ -387,6 +424,7 @@ export default function BeaconCampusApp() {
           startPointLabel={startPointLabel(campus, session.startNodeId)}
           onChangeStartPoint={() => patch({ screen: "start-point" })}
           preferences={preferences}
+          effectivePreferences={activeRoutePreferences}
           routeMode={session.routeMode}
           onSelectRouteMode={(mode) => patch({ routeMode: mode })}
           onToggleAccessibleRoute={() => {
@@ -404,6 +442,9 @@ export default function BeaconCampusApp() {
           savedCarLot={savedCarLot}
           onOpenReturnToCar={handleWalkToCar}
           destinationIntel={destinationIntel}
+          activeWaypoints={routePlan?.waypoints ?? []}
+          onAddWaypoint={addWaypoint}
+          onRemoveWaypoint={removeWaypoint}
           sheetExpanded={session.sheetExpanded}
           onToggleSheetExpanded={() => patch({ sheetExpanded: !session.sheetExpanded })}
           onCloseSheet={closeSheet}
@@ -492,9 +533,11 @@ export default function BeaconCampusApp() {
             campus={campus}
             stepIndex={session.navStepIndex}
             audioGuidance={preferences.audioGuidance}
+            effectivePreferences={activeRoutePreferences}
             onNextStep={() => patch({ navStepIndex: session.navStepIndex + 1 })}
             onPrevStep={() => patch({ navStepIndex: Math.max(0, session.navStepIndex - 1) })}
             onArrive={arrive}
+            onAddStop={addWaypointDuringNavigation}
             onRequestAssistance={() => patch({ screen: "assistance" })}
           />
         ) : (

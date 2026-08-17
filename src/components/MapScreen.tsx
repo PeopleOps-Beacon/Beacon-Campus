@@ -1,10 +1,11 @@
-import type { ReactNode } from "react";
-import { Accessibility, Car, Crosshair, Navigation, ShieldAlert, Toilet, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Accessibility, Car, ChevronRight, Crosshair, MapPinPlus, Navigation, ShieldAlert, Toilet, X } from "lucide-react";
 import type { SavedCar } from "../hooks/useSavedCar";
-import type { Campus, CampusPreferences, DestinationIntel, RouteMode, SearchResult } from "../types/campus";
+import type { Campus, CampusPreferences, DestinationIntel, RouteMode, RouteWaypoint, SearchResult } from "../types/campus";
 import { ROUTE_MODE_META } from "../types/campus";
 import { formatWalkDistance, routeRationale } from "../lib/campusEngine";
 import { useComboboxNavigation } from "../hooks/useComboboxNavigation";
+import { AddStopSheet } from "./AddStopSheet";
 import { BottomSheet } from "./BottomSheet";
 import { BuildingVisual } from "./BuildingVisual";
 import { CampusMap } from "./CampusMap";
@@ -20,6 +21,7 @@ export function MapScreen({
   startPointLabel,
   onChangeStartPoint,
   preferences,
+  effectivePreferences,
   routeMode,
   onSelectRouteMode,
   onToggleAccessibleRoute,
@@ -34,6 +36,9 @@ export function MapScreen({
   savedCarLot,
   onOpenReturnToCar,
   destinationIntel,
+  activeWaypoints,
+  onAddWaypoint,
+  onRemoveWaypoint,
   sheetExpanded,
   onToggleSheetExpanded,
   onCloseSheet,
@@ -50,6 +55,7 @@ export function MapScreen({
   startPointLabel: string;
   onChangeStartPoint: () => void;
   preferences: CampusPreferences;
+  effectivePreferences: CampusPreferences;
   routeMode: RouteMode;
   onSelectRouteMode: (mode: RouteMode) => void;
   onToggleAccessibleRoute: () => void;
@@ -64,6 +70,9 @@ export function MapScreen({
   savedCarLot: Campus["parkingLots"][number] | undefined;
   onOpenReturnToCar: () => void;
   destinationIntel: DestinationIntel | null;
+  activeWaypoints: RouteWaypoint[];
+  onAddWaypoint: (facilityId: string) => void;
+  onRemoveWaypoint: (facilityId: string) => void;
   sheetExpanded: boolean;
   onToggleSheetExpanded: () => void;
   onCloseSheet: () => void;
@@ -172,9 +181,15 @@ export function MapScreen({
         >
           {destinationIntel ? (
             <ExpandedDestination
+              campus={campus}
+              startNodeId={startNodeId}
               intel={destinationIntel}
               routeMode={routeMode}
               onSelectRouteMode={onSelectRouteMode}
+              effectivePreferences={effectivePreferences}
+              activeWaypoints={activeWaypoints}
+              onAddWaypoint={onAddWaypoint}
+              onRemoveWaypoint={onRemoveWaypoint}
               onStartRoute={onStartRoute}
               onViewDetails={onViewBuildingDetails}
               onClose={onCloseSheet}
@@ -246,20 +261,34 @@ function PeekDestination({ intel, onClose, onExpand }: { intel: DestinationIntel
 const ROUTE_MODE_ORDER: RouteMode[] = ["fastest", "calm", "mobility", "custom"];
 
 function ExpandedDestination({
+  campus,
+  startNodeId,
   intel,
   routeMode,
   onSelectRouteMode,
+  effectivePreferences,
+  activeWaypoints,
+  onAddWaypoint,
+  onRemoveWaypoint,
   onStartRoute,
   onViewDetails,
   onClose
 }: {
+  campus: Campus;
+  startNodeId: string;
   intel: DestinationIntel;
   routeMode: RouteMode;
   onSelectRouteMode: (mode: RouteMode) => void;
+  effectivePreferences: CampusPreferences;
+  activeWaypoints: RouteWaypoint[];
+  onAddWaypoint: (facilityId: string) => void;
+  onRemoveWaypoint: (facilityId: string) => void;
   onStartRoute: () => void;
   onViewDetails: () => void;
   onClose: () => void;
 }) {
+  const [addStopOpen, setAddStopOpen] = useState(false);
+
   return (
     <div className="flex flex-col gap-3 pb-2">
       <div className="flex items-start gap-3">
@@ -281,6 +310,26 @@ function ExpandedDestination({
         {intel.walkMinutes} min · {formatWalkDistance(intel.walkMinutes)} walk · {intel.recommendedEntrance.label}
         {intel.entranceSubstituted ? " (adjusted for a closure)" : ""}
       </p>
+
+      {activeWaypoints.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-white/40">Via</p>
+          {activeWaypoints.map((waypoint) => (
+            <div key={waypoint.facilityId} className="flex items-center gap-2 rounded-[var(--radius-control)] bg-white/[0.05] px-2.5 py-1.5">
+              <MapPinPlus size={13} className="shrink-0 text-campus-gold" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate text-xs font-medium text-white/85">{waypoint.label}</span>
+              <button
+                type="button"
+                onClick={() => onRemoveWaypoint(waypoint.facilityId)}
+                aria-label={`Remove stop: ${waypoint.label}`}
+                className="shrink-0 text-white/40 hover:text-white"
+              >
+                <X size={13} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div>
         <div className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Route mode">
@@ -306,6 +355,18 @@ function ExpandedDestination({
         <p className="mt-1.5 text-xs text-white/50">{routeRationale(routeMode, intel)}</p>
       </div>
 
+      <button
+        type="button"
+        onClick={() => setAddStopOpen(true)}
+        className="flex items-center justify-between rounded-[var(--radius-control)] border border-dashed border-white/15 px-3 py-2 text-left text-sm font-medium text-white/70 hover:border-white/25 hover:text-white"
+      >
+        <span className="flex items-center gap-2">
+          <MapPinPlus size={15} aria-hidden="true" />
+          Add a stop
+        </span>
+        <ChevronRight size={15} className="text-white/30" aria-hidden="true" />
+      </button>
+
       <div className="flex gap-2">
         <Button tone="secondary" className="flex-1" onClick={onViewDetails}>
           View details
@@ -315,6 +376,21 @@ function ExpandedDestination({
           Start route
         </Button>
       </div>
+
+      {addStopOpen && (
+        <AddStopSheet
+          campus={campus}
+          fromNodeId={startNodeId}
+          destinationBuildingId={intel.buildingId}
+          preferences={effectivePreferences}
+          excludeFacilityIds={activeWaypoints.map((w) => w.facilityId)}
+          onAdd={(facilityId) => {
+            onAddWaypoint(facilityId);
+            setAddStopOpen(false);
+          }}
+          onClose={() => setAddStopOpen(false)}
+        />
+      )}
     </div>
   );
 }

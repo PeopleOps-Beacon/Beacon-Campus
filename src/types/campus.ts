@@ -72,6 +72,8 @@ export interface Department {
 export type AmenityType =
   | "restroom"
   | "accessible-restroom"
+  | "service-animal-relief"
+  | "lactation-room"
   | "elevator"
   | "stairs"
   | "emergency-exit"
@@ -297,6 +299,67 @@ export interface QuickQuestion {
   answer: string;
 }
 
+// ---------------------------------------------------------------------------
+// Facility waypoints — restrooms, accessible restrooms, service animal relief
+// areas, and lactation rooms that a route can be built *through*, not just
+// shown as nearby suggestions. The category list is intentionally broader
+// than what's populated with fixture data today, so new stop types (quiet
+// space, water fountain, charging) can be introduced later without changing
+// the routing architecture.
+// ---------------------------------------------------------------------------
+
+export type FacilityCategory =
+  | "restroom"
+  | "accessible-restroom"
+  | "service-animal-relief"
+  | "lactation-room"
+  | "family-restroom"
+  | "quiet-space"
+  | "water-fountain"
+  | "charging-station";
+
+export const FACILITY_CATEGORY_META: Record<FacilityCategory, { label: string; shortLabel: string }> = {
+  restroom: { label: "Restroom", shortLabel: "Restroom" },
+  "accessible-restroom": { label: "Accessible Restroom", shortLabel: "Accessible" },
+  "service-animal-relief": { label: "Service Animal Relief Area", shortLabel: "Service Animal" },
+  "lactation-room": { label: "Lactation Room", shortLabel: "Lactation" },
+  "family-restroom": { label: "Family Restroom", shortLabel: "Family" },
+  "quiet-space": { label: "Quiet Space", shortLabel: "Quiet Space" },
+  "water-fountain": { label: "Water Fountain", shortLabel: "Water" },
+  "charging-station": { label: "Charging Station", shortLabel: "Charging" }
+};
+
+/** Categories currently offered in the "Add a Stop" flow. Others in FacilityCategory are architecture-ready but not yet populated with fixture data or surfaced in the UI. */
+export const ADDABLE_STOP_CATEGORIES: FacilityCategory[] = [
+  "restroom",
+  "accessible-restroom",
+  "service-animal-relief",
+  "lactation-room"
+];
+
+export interface CampusFacility {
+  id: string;
+  category: FacilityCategory;
+  /** Display name, e.g. "Hendrix Student Center — 1st Floor Restroom". */
+  name: string;
+  buildingId: string;
+  floor: number;
+  provenance: DataProvenance;
+}
+
+/**
+ * A stop a calculated route intentionally passes through on the way to the
+ * final destination — not a nearby recommendation, an actual routing leg.
+ * `note` is the guidance instruction shown when the route arrives here.
+ */
+export interface RouteWaypoint {
+  facilityId: string;
+  category: FacilityCategory;
+  label: string;
+  buildingId: string;
+  note: string;
+}
+
 export interface Campus {
   id: string;
   universityName: string;
@@ -314,6 +377,7 @@ export interface Campus {
   tourStops: TourStop[];
   orientationItems: OrientationItem[];
   quickQuestions: QuickQuestion[];
+  facilities: CampusFacility[];
   aliasMap: Record<string, string>; // lowercase alias -> canonical searchable id ("building:id", "room:id", etc.)
   /** Overall data-integrity summary shown in Help — what's verified vs. illustrative, and where verified facts came from. */
   dataDisclosure: {
@@ -360,7 +424,7 @@ export interface DestinationIntel {
   activeAlerts: CampusAlert[];
 }
 
-export type StepCategory = "direction" | "landmark" | "accessibility" | "advisory" | "arrival" | "reassurance";
+export type StepCategory = "direction" | "landmark" | "accessibility" | "advisory" | "arrival" | "reassurance" | "waypoint";
 
 /**
  * Real, functional routing/behavior preferences — mirrors Beacon Airport's
@@ -439,6 +503,8 @@ export interface GuidanceStep {
   feet?: number;
   /** Path node or building id this step is "at" — drives the per-step location illustration. */
   locationId?: string;
+  /** Set on the step where the route arrives at `RoutePlan.waypoints[waypointIndex]` — distinguishes a stop arrival ("Continue Route") from the final destination arrival. */
+  waypointIndex?: number;
 }
 
 export interface RoutePlan {
@@ -446,7 +512,8 @@ export interface RoutePlan {
   steps: GuidanceStep[];
   totalMinutes: number;
   startLabel: string;
-  waypoint?: { building: Building; note: string };
-  /** Resolved walking-graph node path, including any waypoint detour — for map rendering. */
+  /** Ordered intentional stops this route passes through before the final destination — empty when none. */
+  waypoints: RouteWaypoint[];
+  /** Resolved walking-graph node path, including any waypoint detours — for map rendering. */
   path: string[];
 }

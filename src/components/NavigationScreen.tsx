@@ -1,8 +1,9 @@
-import { useEffect } from "react";
-import { AlertTriangle, Compass, DoorOpen, Heart, MapPin, MapPinned } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertTriangle, CheckCircle2, Compass, DoorOpen, Heart, MapPin, MapPinned, MapPinPlus } from "lucide-react";
 import { pulse } from "../lib/haptics";
 import { speak } from "../lib/speech";
-import type { Campus, RoutePlan, StepCategory } from "../types/campus";
+import type { Campus, CampusPreferences, RoutePlan, StepCategory } from "../types/campus";
+import { AddStopSheet } from "./AddStopSheet";
 import { AssistanceQuickAction } from "./AssistanceScreen";
 import { LocationIllustration } from "./LocationIllustration";
 import { Button, Card, cx } from "./ui/Primitives";
@@ -18,7 +19,8 @@ const CATEGORY_ICON: Record<StepCategory, typeof Compass> = {
   accessibility: MapPin,
   advisory: AlertTriangle,
   arrival: MapPin,
-  reassurance: Heart
+  reassurance: Heart,
+  waypoint: MapPinPlus
 };
 
 export function NavigationScreen({
@@ -26,25 +28,32 @@ export function NavigationScreen({
   campus,
   stepIndex,
   audioGuidance,
+  effectivePreferences,
   onNextStep,
   onPrevStep,
   onArrive,
+  onAddStop,
   onRequestAssistance
 }: {
   plan: RoutePlan;
   campus: Campus;
   stepIndex: number;
   audioGuidance: boolean;
+  effectivePreferences: CampusPreferences;
   onNextStep: () => void;
   onPrevStep: () => void;
   onArrive: () => void;
+  onAddStop: (facilityId: string) => void;
   onRequestAssistance: () => void;
 }) {
+  const [addStopOpen, setAddStopOpen] = useState(false);
   const steps = plan.steps.filter((s) => s.category !== "arrival");
   const current = steps[stepIndex];
   const next = steps[stepIndex + 1];
   const isLastStep = stepIndex === steps.length - 1;
   const remainingMinutes = Math.max(0, plan.totalMinutes - (current?.minutesFromStart ?? 0));
+  const isWaypointArrival = current?.category === "waypoint" && current.waypointIndex !== undefined;
+  const upcomingWaypointStep = steps.find((s) => s.order > (current?.order ?? -1) && s.category === "waypoint");
 
   useEffect(() => {
     if (audioGuidance && current) speak(current.instruction);
@@ -69,6 +78,20 @@ export function NavigationScreen({
         </div>
       </div>
 
+      {plan.waypoints.length > 0 && (
+        <p className="px-1 text-xs font-medium text-white/50">
+          {upcomingWaypointStep && upcomingWaypointStep.waypointIndex !== undefined ? (
+            <>
+              <span className="text-campus-gold">Next Stop:</span> {plan.waypoints[upcomingWaypointStep.waypointIndex].label.split(" — ")[0]}
+            </>
+          ) : (
+            <>
+              <span className="text-campus-gold">Final Destination:</span> {plan.destination.title} · {remainingMinutes} min remaining
+            </>
+          )}
+        </p>
+      )}
+
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
         <div
           className="h-full rounded-full bg-campus-gold transition-all duration-300"
@@ -78,23 +101,33 @@ export function NavigationScreen({
 
       {current && (
         <div key={current.id} className="flex flex-1 flex-col justify-center gap-4 animate-screen-in">
-          {!!current.feet && (
-            <p className="text-5xl font-bold leading-none text-campus-gold">
-              {current.feet < 1000 ? current.feet : `${(current.feet / 5280).toFixed(1)} mi`}
-              {current.feet < 1000 && <span className="ml-1.5 text-xl font-semibold text-campus-gold/70">ft</span>}
-            </p>
+          {isWaypointArrival ? (
+            <Card className="flex flex-col items-center gap-2 border-campus-gold/25 bg-campus-gold/[0.06] py-5 text-center">
+              <CheckCircle2 size={26} className="text-campus-gold" aria-hidden="true" />
+              <p className="text-lg font-bold text-white">{current.instruction}</p>
+              <p className="text-sm text-white/60">When you're ready, continue to {plan.destination.title}.</p>
+            </Card>
+          ) : (
+            <>
+              {!!current.feet && (
+                <p className="text-5xl font-bold leading-none text-campus-gold">
+                  {current.feet < 1000 ? current.feet : `${(current.feet / 5280).toFixed(1)} mi`}
+                  {current.feet < 1000 && <span className="ml-1.5 text-xl font-semibold text-campus-gold/70">ft</span>}
+                </p>
+              )}
+
+              <Card className={cx("flex items-start gap-3", current.category === "advisory" && "border-campus-gold/25 bg-campus-gold/[0.06]")}>
+                <div className="mt-0.5 shrink-0 text-campus-gold">
+                  <Icon size={24} aria-hidden="true" />
+                </div>
+                <p className="text-xl font-semibold leading-snug text-white" aria-live="polite" aria-atomic="true">
+                  {current.instruction}
+                </p>
+              </Card>
+
+              {next && <p className="px-1 text-sm text-white/45">Then: {next.instruction}</p>}
+            </>
           )}
-
-          <Card className={cx("flex items-start gap-3", current.category === "advisory" && "border-campus-gold/25 bg-campus-gold/[0.06]")}>
-            <div className="mt-0.5 shrink-0 text-campus-gold">
-              <Icon size={24} aria-hidden="true" />
-            </div>
-            <p className="text-xl font-semibold leading-snug text-white" aria-live="polite" aria-atomic="true">
-              {current.instruction}
-            </p>
-          </Card>
-
-          {next && <p className="px-1 text-sm text-white/45">Then: {next.instruction}</p>}
         </div>
       )}
 
@@ -102,7 +135,13 @@ export function NavigationScreen({
         Step {stepIndex + 1} of {steps.length}
       </div>
 
-      <AssistanceQuickAction onClick={onRequestAssistance} />
+      <div className="flex gap-2">
+        <AssistanceQuickAction onClick={onRequestAssistance} />
+        <Button tone="ghost" className="w-full justify-center text-white/60" onClick={() => setAddStopOpen(true)}>
+          <MapPinPlus size={15} aria-hidden="true" />
+          Add stop
+        </Button>
+      </div>
 
       <div className="flex gap-2.5 pt-1">
         {stepIndex > 0 && (
@@ -111,9 +150,23 @@ export function NavigationScreen({
           </Button>
         )}
         <Button tone="primary" className="flex-1" onClick={isLastStep ? onArrive : onNextStep}>
-          {isLastStep ? "I've Arrived" : "Next"}
+          {isLastStep ? "I've Arrived" : isWaypointArrival ? "Continue Route" : "Next"}
         </Button>
       </div>
+
+      {addStopOpen && (
+        <AddStopSheet
+          campus={campus}
+          fromNodeId={current?.locationId ?? plan.path[0]}
+          destinationBuildingId={plan.destination.buildingId}
+          preferences={effectivePreferences}
+          onAdd={(facilityId) => {
+            onAddStop(facilityId);
+            setAddStopOpen(false);
+          }}
+          onClose={() => setAddStopOpen(false)}
+        />
+      )}
     </div>
   );
 }

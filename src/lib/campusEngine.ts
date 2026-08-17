@@ -3,18 +3,21 @@ import type {
   Building,
   Campus,
   CampusAlert,
+  CampusFacility,
   CampusPreferences,
   DestinationIntel,
   Entrance,
+  FacilityCategory,
   GuidanceStep,
   ParkingEligibility,
   ParkingLot,
   Point,
   RouteMode,
   RoutePlan,
+  RouteWaypoint,
   SearchResult
 } from "../types/campus";
-import { DEFAULT_PREFERENCES, ROUTE_MODE_META } from "../types/campus";
+import { DEFAULT_PREFERENCES, FACILITY_CATEGORY_META, ROUTE_MODE_META } from "../types/campus";
 import { isWithinHours } from "../utils/time";
 
 // ---------------------------------------------------------------------------
@@ -321,53 +324,182 @@ export interface DestinationTarget {
   eligibility?: ParkingEligibility;
 }
 
-interface WeightedRoute {
-  path: string[];
-  minutes: number;
-  waypoint?: { building: Building; note: string };
+// ---------------------------------------------------------------------------
+// Facility waypoints — restroom, accessible restroom, service animal relief,
+// and lactation room stops that become genuine legs of a route rather than
+// nearby suggestions. Mirrors Beacon Airport's buildStopSequence/
+// calculateRoute pattern (routeEngine.ts): one preferences object is threaded
+// through every segment's pathfinding call, so accessibility constraints —
+// step-free, avoid crowds, calm route — apply to the whole journey, not just
+// the leg to the first stop.
+// ---------------------------------------------------------------------------
+
+/** A facility on an upper floor is only step-free reachable if its building has an elevator — Campus doesn't track per-amenity accessibility separately from that. */
+export function facilityAccessible(campus: Campus, facility: CampusFacility): boolean {
+  if (facility.floor <= 1) return true;
+  const building = getBuilding(campus, facility.buildingId);
+  return building?.amenities.some((a) => a.type === "elevator") ?? false;
+}
+
+export interface FacilityRecommendation {
+  facility: CampusFacility;
+  building: Building;
+  addedMinutes: number;
+  accessible: boolean;
+}
+
+export interface FacilityRecommendationResult {
+  category: FacilityCategory;
+  options: FacilityRecommendation[];
+  /** Instances that exist but were left out because they can't be reached under the traveler's active accessibility preferences — never silently offered as if they were compatible. */
+  excludedForAccessibility: number;
 }
 
 /**
- * Resolves the actual path to walk, including the restroomStop waypoint
- * detour when requested and the extraTime multiplier on the final estimate.
- * Both getDestinationIntel and computeRoutePlan call this so the walk time
- * shown on a destination card always matches the route that's actually
- * guided step by step.
+ * Ranks facility instances of a category by how much detour they'd add
+ * between `fromNodeId` and `destinationBuildingId` under the traveler's
+ * active preferences, cheapest first. A facility that can't be reached at
+ * all under `stepFree` (or has no known accessible path from/to it) is
+ * excluded rather than recommended and silently routed around the
+ * preference — see ERROR HANDLING in the feature brief.
  */
-function planWeightedPath(campus: Campus, fromNodeId: string, buildingId: string, preferences: CampusPreferences): WeightedRoute {
+export function recommendFacility(
+  campus: Campus,
+  category: FacilityCategory,
+  fromNodeId: string,
+  destinationBuildingId: string,
+  preferences: CampusPreferences
+): FacilityRecommendationResult {
   const weightOpts: RouteWeightOptions = {
     preferStepFree: preferences.stepFree,
     avoidCrowds: preferences.avoidCrowds,
     calmRoute: preferences.calmRoute
   };
 
-  const direct = findShortestPath(campus, fromNodeId, buildingId, weightOpts) ?? { path: [fromNodeId, buildingId], minutes: 0 };
-  let path = direct.path;
-  let minutes = direct.minutes;
-  let waypoint: WeightedRoute["waypoint"];
+  const direct = findShortestPath(campus, fromNodeId, destinationBuildingId, weightOpts);
+  const directMinutes = direct?.minutes ?? 0;
 
-  if (preferences.restroomStop) {
-    const nearby = findNearbyAmenityBuilding(campus, fromNodeId, "restroom", buildingId, weightOpts);
-    if (nearby && !direct.path.includes(nearby.building.id)) {
-      const leg1 = findShortestPath(campus, fromNodeId, nearby.building.id, weightOpts);
-      const leg2 = findShortestPath(campus, nearby.building.id, buildingId, weightOpts);
-      if (leg1 && leg2) {
-        path = [...leg1.path, ...leg2.path.slice(1)];
-        minutes = leg1.minutes + leg2.minutes + 1;
-        waypoint = { building: nearby.building, note: `Quick stop: restroom inside ${nearby.building.name}.` };
-      }
+  const options: FacilityRecommendation[] = [];
+  let excludedForAccessibility = 0;
+
+  for (const facility of campus.facilities) {
+    if (facility.category !== category) continue;
+    const building = getBuilding(campus, facility.buildingId);
+    if (!building || facility.buildingId === destinationBuildingId || facility.buildingId === fromNodeId) continue;
+
+    const accessible = facilityAccessible(campus, facility);
+    if (preferences.stepFree && !accessible) {
+      excludedForAccessibility += 1;
+      continue;
+    }
+
+    const toFacility = findShortestPath(campus, fromNodeId, facility.buildingId, weightOpts);
+    const fromFacility = findShortestPath(campus, facility.buildingId, destinationBuildingId, weightOpts);
+    if (!toFacility || !fromFacility) {
+      excludedForAccessibility += 1;
+      continue;
+    }
+
+    options.push({
+      facility,
+      building,
+      addedMinutes: Math.max(0, Math.round(toFacility.minutes + fromFacility.minutes - directMinutes)),
+      accessible
+    });
+  }
+
+  options.sort((a, b) => a.addedMinutes - b.addedMinutes);
+  return { category, options, excludedForAccessibility };
+}
+
+function toRouteWaypoint(campus: Campus, facility: CampusFacility): RouteWaypoint {
+  const building = getBuilding(campus, facility.buildingId);
+  const label = FACILITY_CATEGORY_META[facility.category].label;
+  return {
+    facilityId: facility.id,
+    category: facility.category,
+    label: building?.name ? `${label} — ${building.name}` : label,
+    buildingId: facility.buildingId,
+    note: `Quick stop: ${label.toLowerCase()} inside ${building?.name ?? label}.`
+  };
+}
+
+interface WeightedRoute {
+  path: string[];
+  minutes: number;
+  waypoints: RouteWaypoint[];
+}
+
+/**
+ * Resolves the actual path to walk — including any facility waypoints,
+ * whether explicitly chosen (`waypointFacilityIds`) or auto-added by the
+ * `restroomStop` preference — and the extraTime multiplier on the final
+ * estimate. Both getDestinationIntel and computeRoutePlan call this so the
+ * walk time shown on a destination card always matches the route that's
+ * actually guided step by step.
+ *
+ * Every leg of a multi-stop route is pathfound with the same `weightOpts`,
+ * so accessibility preferences apply to the complete journey, not just the
+ * first segment — the same guarantee Beacon Airport's calculateRoute makes
+ * by threading one preferences array through its stop-sequence loop.
+ */
+function planWeightedPath(
+  campus: Campus,
+  fromNodeId: string,
+  buildingId: string,
+  preferences: CampusPreferences,
+  waypointFacilityIds: string[] = []
+): WeightedRoute {
+  const weightOpts: RouteWeightOptions = {
+    preferStepFree: preferences.stepFree,
+    avoidCrowds: preferences.avoidCrowds,
+    calmRoute: preferences.calmRoute
+  };
+
+  let facilities = waypointFacilityIds
+    .map((id) => campus.facilities.find((f) => f.id === id))
+    .filter((f): f is CampusFacility => Boolean(f));
+
+  const hasRestroomWaypoint = facilities.some((f) => f.category === "restroom" || f.category === "accessible-restroom");
+  if (preferences.restroomStop && !hasRestroomWaypoint) {
+    const category: FacilityCategory = preferences.stepFree ? "accessible-restroom" : "restroom";
+    const recommendation = recommendFacility(campus, category, fromNodeId, buildingId, preferences);
+    if (recommendation.options.length > 0) {
+      facilities = [...facilities, recommendation.options[0].facility];
     }
   }
 
+  const seen = new Set<string>();
+  facilities = facilities.filter((f) => {
+    if (f.buildingId === buildingId || f.buildingId === fromNodeId) return false;
+    if (seen.has(f.id)) return false;
+    seen.add(f.id);
+    return true;
+  });
+
+  const stopSequence = [fromNodeId, ...facilities.map((f) => f.buildingId), buildingId];
+  const legs: PathResult[] = [];
+  for (let i = 0; i < stopSequence.length - 1; i++) {
+    const leg = findShortestPath(campus, stopSequence[i], stopSequence[i + 1], weightOpts);
+    if (!leg) {
+      // A waypoint leg is unreachable under the active preferences — fall back
+      // to the direct route rather than silently dropping the destination.
+      return planWeightedPath(campus, fromNodeId, buildingId, preferences, []);
+    }
+    legs.push(leg);
+  }
+
+  const path = legs.reduce<string[]>((all, leg, index) => (index === 0 ? leg.path : [...all, ...leg.path.slice(1)]), []);
+  let minutes = legs.reduce((total, leg) => total + leg.minutes, 0);
   if (preferences.extraTime) minutes = Math.round(minutes * 1.25);
 
-  return { path, minutes, waypoint };
+  return { path, minutes, waypoints: facilities.map((f) => toRouteWaypoint(campus, f)) };
 }
 
 export function getDestinationIntel(
   campus: Campus,
   target: DestinationTarget,
-  opts: { fromNodeId?: string; preferences?: CampusPreferences; now?: Date } = {}
+  opts: { fromNodeId?: string; preferences?: CampusPreferences; now?: Date; waypointFacilityIds?: string[] } = {}
 ): DestinationIntel | null {
   const building = getBuilding(campus, target.buildingId);
   if (!building) return null;
@@ -380,7 +512,7 @@ export function getDestinationIntel(
     target.floor ?? (target.roomNumber ? building.rooms.find((r) => r.number === target.roomNumber)?.floor : undefined);
 
   const fromNodeId = opts.fromNodeId ?? "green";
-  const route = planWeightedPath(campus, fromNodeId, building.id, preferences);
+  const route = planWeightedPath(campus, fromNodeId, building.id, preferences, opts.waypointFacilityIds ?? []);
   const entranceRec = recommendEntrance(campus, building, { preferStepFree: preferences.stepFree });
   const openStatus = buildingOpenStatus(building, opts.now);
   const parkingRec = resolveParkingForBuilding(campus, building, { eligibility: target.eligibility });
@@ -390,7 +522,7 @@ export function getDestinationIntel(
   if (preferences.stepFree) notes.push(`Route adjusted for step-free access via the ${entranceRec.entrance.label}.`);
   if (preferences.avoidCrowds) notes.push("Route adjusted to avoid the busiest walkways.");
   if (preferences.calmRoute) notes.push("Route adjusted for a quieter, lower-stimulation path.");
-  if (route.waypoint) notes.push(route.waypoint.note);
+  route.waypoints.forEach((waypoint) => notes.push(waypoint.note));
 
   return {
     buildingId: building.id,
@@ -503,21 +635,28 @@ export function journeySummaryRows(
     .map((key) => JOURNEY_PREFERENCE_LABELS[key]!)
     .join(", ");
 
-  return [
+  const rows = [
     { label: "Destination", value: plan.destination.title },
     { label: "Walk time", value: `${plan.totalMinutes} min` },
-    { label: "Route", value: ROUTE_MODE_META[mode].label },
+    { label: "Route", value: ROUTE_MODE_META[mode].label }
+  ];
+  if (plan.waypoints.length > 0) {
+    rows.push({ label: "Stops", value: plan.waypoints.map((w) => w.label.split(" — ")[0]).join(", ") });
+  }
+  rows.push(
     { label: "Accessibility support", value: support || "None" },
     { label: "Route changes", value: plan.destination.entranceSubstituted ? "Entrance changed for a closure" : "None" }
-  ];
+  );
+  return rows;
 }
 
 export function getGuidanceSteps(
   campus: Campus,
   intel: DestinationIntel,
   path: string[],
-  opts: { preferences?: CampusPreferences; waypoint?: { building: Building; note: string } } = {}
+  opts: { preferences?: CampusPreferences; waypoints?: RouteWaypoint[] } = {}
 ): GuidanceStep[] {
+  const waypoints = opts.waypoints ?? [];
   const preferences = opts.preferences ?? DEFAULT_PREFERENCES;
   const simplified = preferences.simplifiedDirections;
   const steps: GuidanceStep[] = [];
@@ -579,15 +718,18 @@ export function getGuidanceSteps(
         feet: 0,
         locationId: intel.buildingId
       });
-    } else if (opts.waypoint && nodeId === opts.waypoint.building.id) {
+    } else if (!isDestination && waypoints.some((w) => w.buildingId === nodeId)) {
+      const waypointIndex = waypoints.findIndex((w) => w.buildingId === nodeId);
+      const waypoint = waypoints[waypointIndex];
       steps.push({
         id: `step-${order}`,
         order: order++,
-        instruction: opts.waypoint.note,
-        category: "accessibility",
+        instruction: waypoint.note,
+        category: "waypoint",
         minutesFromStart: Math.round(minutesFromStart),
         feet: roundFeet(feetSinceLastStep),
-        locationId: opts.waypoint.building.id
+        locationId: waypoint.buildingId,
+        waypointIndex
       });
       feetSinceLastStep = 0;
     } else if (node?.isLandmark) {
@@ -688,15 +830,15 @@ export function estimateExertion(campus: Campus, path: string[]): ExertionEstima
 export function computeRoutePlan(
   campus: Campus,
   target: DestinationTarget,
-  opts: { fromNodeId?: string; preferences?: CampusPreferences; now?: Date } = {}
+  opts: { fromNodeId?: string; preferences?: CampusPreferences; now?: Date; waypointFacilityIds?: string[] } = {}
 ): RoutePlan | null {
   const preferences = opts.preferences ?? DEFAULT_PREFERENCES;
   const intel = getDestinationIntel(campus, target, opts);
   if (!intel) return null;
 
   const fromNodeId = opts.fromNodeId ?? "green";
-  const route = planWeightedPath(campus, fromNodeId, intel.buildingId, preferences);
-  const steps = getGuidanceSteps(campus, intel, route.path, { preferences, waypoint: route.waypoint });
+  const route = planWeightedPath(campus, fromNodeId, intel.buildingId, preferences, opts.waypointFacilityIds ?? []);
+  const steps = getGuidanceSteps(campus, intel, route.path, { preferences, waypoints: route.waypoints });
   const startNode = campus.pathNodes.find((n) => n.id === fromNodeId);
 
   return {
@@ -704,7 +846,7 @@ export function computeRoutePlan(
     steps,
     totalMinutes: intel.walkMinutes,
     startLabel: startNode?.label ?? "Your location",
-    waypoint: route.waypoint,
+    waypoints: route.waypoints,
     path: route.path
   };
 }
@@ -725,9 +867,13 @@ function scoreMatch(query: string, ...fields: (string | undefined)[]): number {
   return best;
 }
 
+const FACILITY_SEARCH_AMENITY_TYPES = new Set<string>(["restroom", "accessible-restroom", "service-animal-relief", "lactation-room"]);
+
 const AMENITY_KEYWORDS: { keywords: string[]; type: string }[] = [
   { keywords: ["restroom", "bathroom", "toilet"], type: "restroom" },
   { keywords: ["accessible restroom", "accessible bathroom"], type: "accessible-restroom" },
+  { keywords: ["service animal", "pet relief", "dog relief"], type: "service-animal-relief" },
+  { keywords: ["lactation", "nursing room", "nursing area", "pumping room"], type: "lactation-room" },
   { keywords: ["coffee"], type: "coffee" },
   { keywords: ["elevator"], type: "elevator" },
   { keywords: ["printing", "printer"], type: "printing" },
@@ -809,11 +955,14 @@ export function search(campus: Campus, rawQuery: string, limit = 20): SearchResu
       for (const building of campus.buildings) {
         for (const amenity of building.amenities) {
           if (amenity.type === group.type) {
+            // Restroom/accessible-restroom/service-animal-relief/lactation-room results lead with what the amenity
+            // IS (so "lactation room" search results are recognizable as one), not just where it is.
+            const isFacilityCategory = FACILITY_SEARCH_AMENITY_TYPES.has(group.type);
             add({
               id: amenity.id,
               kind: "amenity",
-              title: amenity.label,
-              subtitle: building.name,
+              title: isFacilityCategory ? `${FACILITY_CATEGORY_META[group.type as FacilityCategory].label} — ${building.name}` : amenity.label,
+              subtitle: isFacilityCategory ? amenity.label : building.name,
               buildingId: building.id,
               score: 70
             });
