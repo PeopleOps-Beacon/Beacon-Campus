@@ -1,5 +1,6 @@
+import { LANDMARK_PHOTOS } from "../data/beaconUniversity";
 import type { Campus } from "../types/campus";
-import { BuildingVisual } from "./BuildingVisual";
+import { BuildingVisual, PhotoVisual } from "./BuildingVisual";
 
 // Outdoor/landmark scenes to pair with BuildingIllustration's building scenes —
 // together these let every step of a route show "what this spot looks like"
@@ -175,6 +176,12 @@ export function LocationIllustration({
 }) {
   const building = locationId ? campus.buildings.find((b) => b.id === locationId) : undefined;
   if (building) return <BuildingVisual building={building} className={className} height={height} />;
+
+  const landmarkPhoto = locationId ? LANDMARK_PHOTOS[locationId] : undefined;
+  if (landmarkPhoto) {
+    const label = campus.pathNodes.find((n) => n.id === locationId)?.label ?? "Campus landmark";
+    return <PhotoVisual photo={landmarkPhoto} alt={label} className={className} height={height} />;
+  }
 
   const scene = (locationId && LANDMARK_SCENES[locationId]) || "quad";
   return <OutdoorScene type={scene} className={className} height={height} />;

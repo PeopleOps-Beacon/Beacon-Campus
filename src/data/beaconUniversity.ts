@@ -26,6 +26,7 @@ import martinHallPhoto from "../assets/buildings/martin-hall.jpg";
 import redfernPhoto from "../assets/buildings/redfern.jpg";
 import littlejohnPhoto from "../assets/buildings/littlejohn.jpg";
 import memorialStadiumPhoto from "../assets/buildings/memorial-stadium.jpg";
+import bowmanFieldPhoto from "../assets/landmarks/bowman-field.jpg";
 
 // ---------------------------------------------------------------------------
 // Data provenance helpers
@@ -1043,3 +1044,25 @@ export const START_POINT_OPTIONS: { id: string; label: string }[] = [
 ];
 
 export const DEFAULT_START_NODE_ID = "green";
+
+/**
+ * Real photos for outdoor landmark path nodes, kept separate from and much
+ * smaller than the building photo set. Most landmark labels ("Administration
+ * Walk", "South Campus Gate", "Athletics Way", etc.) are internal wayfinding
+ * names authored for this prototype's path graph, not verified official
+ * Clemson place names — sourcing "real photos" for them would misrepresent
+ * placeholder data as authoritative, exactly what this project's data
+ * provenance system exists to prevent. Only two kinds of landmark qualify:
+ * a landmark that is itself a real, unambiguous, cited Clemson place (Bowman
+ * Field), or a landmark that's just the walkway/plaza directly outside a
+ * building we already have a verified real photo of (reused here rather than
+ * duplicated).
+ */
+const cooperLibraryBuildingPhoto = buildings.find((b) => b.id === "library")?.photo;
+const hendrixBuildingPhoto = buildings.find((b) => b.id === "student-union")?.photo;
+
+export const LANDMARK_PHOTOS: Record<string, BuildingPhoto> = {
+  green: photo(bowmanFieldPhoto, "CU_Tillman_Hall_%26_Bowman_Field_Aug2010.jpg"),
+  ...(cooperLibraryBuildingPhoto ? { "library-plaza": cooperLibraryBuildingPhoto } : {}),
+  ...(hendrixBuildingPhoto ? { "union-plaza": hendrixBuildingPhoto } : {})
+};
