@@ -1022,7 +1022,7 @@ export const JORDAN_SCHEDULE = jordanSchedule;
 
 export const DEMO_PERSONA = {
   name: "Jordan",
-  status: "First-year student",
+  status: "Freshman",
   schedule: jordanSchedule
 };
 

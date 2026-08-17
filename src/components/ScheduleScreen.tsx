@@ -1,9 +1,9 @@
 import { Navigation } from "lucide-react";
-import { JORDAN_SCHEDULE } from "../data/beaconUniversity";
+import { DEMO_PERSONA, JORDAN_SCHEDULE } from "../data/beaconUniversity";
 import { getDestinationIntel } from "../lib/campusEngine";
 import type { Campus, CampusPreferences, ClassScheduleEntry } from "../types/campus";
 import { formatClockTime, getLeaveByInfo } from "../utils/time";
-import { Badge, Card, IconTile, SectionHeading } from "./ui/Primitives";
+import { Badge, Card, SectionHeading, cx } from "./ui/Primitives";
 
 export function ScheduleScreen({
   campus,
@@ -21,7 +21,9 @@ export function ScheduleScreen({
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <p className="text-sm text-white/50">Jordan · First-year student</p>
+        <p className="text-sm text-white/50">
+          {DEMO_PERSONA.name} · {DEMO_PERSONA.status}
+        </p>
         <h1 className="text-[var(--font-display)] font-bold text-white">Today's Schedule</h1>
       </div>
 
@@ -41,6 +43,12 @@ export function ScheduleScreen({
       </div>
     </div>
   );
+}
+
+/** Splits "10:30 AM" into ["10:30", "AM"] so each half can be sized to fit the time badge circle. */
+function splitClockTime(value: string): [string, string] {
+  const match = value.match(/^(\d{1,2}:\d{2})\s*([AP]M)$/i);
+  return match ? [match[1], match[2].toUpperCase()] : [value, ""];
 }
 
 function ClassRow({
@@ -64,13 +72,20 @@ function ClassRow({
   const walkMinutes = intel?.walkMinutes ?? 0;
   const leaveBy = getLeaveByInfo(entry.time, walkMinutes, now);
   const isPast = leaveBy.tone === "past";
+  const [hourMin, ampm] = splitClockTime(formatClockTime(entry.time));
 
   return (
     <Card className={isPast ? "opacity-50" : undefined}>
       <div className="flex items-start gap-3">
-        <IconTile tone={isPast ? "neutral" : "gold"}>
-          <span className="text-xs font-bold">{formatClockTime(entry.time).replace(" ", "\n")}</span>
-        </IconTile>
+        <div
+          className={cx(
+            "flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-full leading-none",
+            isPast ? "bg-white/[0.08] text-white" : "bg-campus-gold text-campus-ink"
+          )}
+        >
+          <span className="text-[13px] font-bold">{hourMin}</span>
+          {ampm && <span className="mt-0.5 text-[10px] font-semibold tracking-wide">{ampm}</span>}
+        </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-white">
             {entry.courseName} <span className="font-normal text-white/50">({entry.course})</span>
