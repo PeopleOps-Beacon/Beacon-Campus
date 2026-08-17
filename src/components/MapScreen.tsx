@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { Accessibility, Car, Crosshair, Navigation, ShieldAlert, Toilet, X } from "lucide-react";
 import type { SavedCar } from "../hooks/useSavedCar";
-import type { Campus, CampusPreferences, DestinationIntel, SearchResult } from "../types/campus";
+import type { Campus, CampusPreferences, DestinationIntel, RouteMode, SearchResult } from "../types/campus";
+import { formatWalkDistance, routeRationale } from "../lib/campusEngine";
 import { useComboboxNavigation } from "../hooks/useComboboxNavigation";
 import { BottomSheet } from "./BottomSheet";
 import { BuildingVisual } from "./BuildingVisual";
@@ -18,6 +19,7 @@ export function MapScreen({
   startPointLabel,
   onChangeStartPoint,
   preferences,
+  routeMode,
   onToggleAccessibleRoute,
   onFindRestroom,
   onOpenParkingList,
@@ -46,6 +48,7 @@ export function MapScreen({
   startPointLabel: string;
   onChangeStartPoint: () => void;
   preferences: CampusPreferences;
+  routeMode: RouteMode;
   onToggleAccessibleRoute: () => void;
   onFindRestroom: () => void;
   onOpenParkingList: () => void;
@@ -169,6 +172,7 @@ export function MapScreen({
           {destinationIntel ? (
             <ExpandedDestination
               intel={destinationIntel}
+              routeMode={routeMode}
               onStartRoute={onStartRoute}
               onViewDetails={onViewBuildingDetails}
               onClose={onCloseSheet}
@@ -239,11 +243,13 @@ function PeekDestination({ intel, onClose, onExpand }: { intel: DestinationIntel
 
 function ExpandedDestination({
   intel,
+  routeMode,
   onStartRoute,
   onViewDetails,
   onClose
 }: {
   intel: DestinationIntel;
+  routeMode: RouteMode;
   onStartRoute: () => void;
   onViewDetails: () => void;
   onClose: () => void;
@@ -266,10 +272,10 @@ function ExpandedDestination({
       </div>
 
       <p className="text-sm text-white/70">
-        {intel.walkMinutes} min walk · {intel.recommendedEntrance.label}
+        {intel.walkMinutes} min · {formatWalkDistance(intel.walkMinutes)} walk · {intel.recommendedEntrance.label}
         {intel.entranceSubstituted ? " (adjusted for a closure)" : ""}
       </p>
-      {intel.accessibilityNote && <p className="text-xs text-campus-sky">{intel.accessibilityNote}</p>}
+      <p className="text-xs text-white/50">{routeRationale(routeMode, intel)}</p>
 
       <div className="flex gap-2">
         <Button tone="secondary" className="flex-1" onClick={onViewDetails}>

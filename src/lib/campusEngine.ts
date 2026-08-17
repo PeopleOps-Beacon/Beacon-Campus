@@ -10,10 +10,11 @@ import type {
   ParkingEligibility,
   ParkingLot,
   Point,
+  RouteMode,
   RoutePlan,
   SearchResult
 } from "../types/campus";
-import { DEFAULT_PREFERENCES } from "../types/campus";
+import { DEFAULT_PREFERENCES, ROUTE_MODE_META } from "../types/campus";
 import { isWithinHours } from "../utils/time";
 
 // ---------------------------------------------------------------------------
@@ -458,12 +459,57 @@ function arrivalMessage(intel: DestinationIntel, simplified: boolean): string {
 }
 
 /** Average adult walking pace (~3 mph), used only to turn a step's walk time into a simulated distance-in-feet readout — never a measured distance. */
-const WALK_FEET_PER_MINUTE = 265;
+export const WALK_FEET_PER_MINUTE = 265;
 
 /** Rounds a simulated distance to a sensible increment (nearest 25 ft) so it reads like an estimate, not a precise measurement. */
-function roundFeet(feet: number): number {
+export function roundFeet(feet: number): number {
   if (feet <= 0) return 0;
   return Math.max(25, Math.round(feet / 25) * 25);
+}
+
+/** Formats a simulated walk distance (derived from minutes, not measured) as "850 ft" or "0.4 mi". */
+export function formatWalkDistance(minutes: number): string {
+  const feet = roundFeet(minutes * WALK_FEET_PER_MINUTE);
+  if (feet < 1000) return `${feet} ft`;
+  return `${(feet / 5280).toFixed(1)} mi`;
+}
+
+/** A short "why this route" line for a destination preview — the active route mode plus any preference-driven adjustments already computed onto the intel. */
+export function routeRationale(mode: RouteMode, intel: DestinationIntel): string {
+  const parts = [ROUTE_MODE_META[mode].label];
+  if (intel.accessibilityNote) parts.push(intel.accessibilityNote);
+  else if (intel.entranceSubstituted) parts.push(`Entrance changed — ${intel.recommendedEntrance.label} instead, +${intel.addedMinutes} min.`);
+  return parts.join(" — ");
+}
+
+const JOURNEY_PREFERENCE_LABELS: Partial<Record<keyof CampusPreferences, string>> = {
+  stepFree: "Step-free route",
+  avoidCrowds: "Lower-crowd routing",
+  calmRoute: "Calm route",
+  restroomStop: "Restroom stop",
+  extraTime: "Extra time",
+  simplifiedDirections: "Simplified directions",
+  reassurance: "Reassurance prompts"
+};
+
+/** A short journey recap for the arrival screen — destination, time, route mode used, which accessibility/comfort preferences actually shaped this route, and whether an alert changed anything. */
+export function journeySummaryRows(
+  plan: RoutePlan,
+  mode: RouteMode,
+  effective: CampusPreferences
+): { label: string; value: string }[] {
+  const support = (Object.keys(JOURNEY_PREFERENCE_LABELS) as (keyof CampusPreferences)[])
+    .filter((key) => effective[key])
+    .map((key) => JOURNEY_PREFERENCE_LABELS[key]!)
+    .join(", ");
+
+  return [
+    { label: "Destination", value: plan.destination.title },
+    { label: "Walk time", value: `${plan.totalMinutes} min` },
+    { label: "Route", value: ROUTE_MODE_META[mode].label },
+    { label: "Accessibility support", value: support || "None" },
+    { label: "Route changes", value: plan.destination.entranceSubstituted ? "Entrance changed for a closure" : "None" }
+  ];
 }
 
 export function getGuidanceSteps(

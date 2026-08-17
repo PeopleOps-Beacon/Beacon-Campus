@@ -3,6 +3,7 @@ import { AlertTriangle, Compass, DoorOpen, Heart, MapPin, MapPinned } from "luci
 import { pulse } from "../lib/haptics";
 import { speak } from "../lib/speech";
 import type { Campus, RoutePlan, StepCategory } from "../types/campus";
+import { AssistanceQuickAction } from "./AssistanceScreen";
 import { LocationIllustration } from "./LocationIllustration";
 import { Button, Card, cx } from "./ui/Primitives";
 
@@ -27,7 +28,8 @@ export function NavigationScreen({
   audioGuidance,
   onNextStep,
   onPrevStep,
-  onArrive
+  onArrive,
+  onRequestAssistance
 }: {
   plan: RoutePlan;
   campus: Campus;
@@ -36,6 +38,7 @@ export function NavigationScreen({
   onNextStep: () => void;
   onPrevStep: () => void;
   onArrive: () => void;
+  onRequestAssistance: () => void;
 }) {
   const steps = plan.steps.filter((s) => s.category !== "arrival");
   const current = steps[stepIndex];
@@ -98,6 +101,8 @@ export function NavigationScreen({
       <div className="flex items-center justify-center text-xs text-white/40">
         Step {stepIndex + 1} of {steps.length}
       </div>
+
+      <AssistanceQuickAction onClick={onRequestAssistance} />
 
       <div className="flex gap-2.5 pt-1">
         {stepIndex > 0 && (

@@ -40,6 +40,7 @@ import { StartPointScreen } from "./components/StartPointScreen";
 import { ExploreScreen, type CategoryId } from "./components/ExploreScreen";
 import { ProfileScreen } from "./components/ProfileScreen";
 import { ReturnToCarScreen } from "./components/ReturnToCarScreen";
+import { AssistanceScreen } from "./components/AssistanceScreen";
 import { HelpScreen } from "./components/HelpScreen";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { ErrorState } from "./components/ui/Primitives";
@@ -62,6 +63,7 @@ type Screen =
   | "orientation"
   | "tour"
   | "assistant"
+  | "assistance"
   | "accessibility"
   | "help"
   | "admin"
@@ -385,13 +387,14 @@ export default function BeaconCampusApp() {
           startPointLabel={startPointLabel(campus, session.startNodeId)}
           onChangeStartPoint={() => patch({ screen: "start-point" })}
           preferences={preferences}
+          routeMode={session.routeMode}
           onToggleAccessibleRoute={() => {
             togglePreference("stepFree");
             analytics.trackPreferenceToggle("stepFree");
           }}
           onFindRestroom={handleFindRestroom}
           onOpenParkingList={() => patch({ screen: "parking" })}
-          onOpenEmergency={() => openBuilding("public-safety")}
+          onOpenEmergency={() => patch({ screen: "assistance" })}
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
           searchResults={searchResults}
@@ -460,6 +463,7 @@ export default function BeaconCampusApp() {
           onWalkToCar={handleWalkToCar}
           onForgetCar={handleForgetCar}
           onOpenAccessibility={() => patch({ screen: "accessibility" })}
+          onOpenAssistance={() => patch({ screen: "assistance" })}
           onOpenAdmin={() => patch({ screen: "admin" })}
           onOpenHelp={() => patch({ screen: "help" })}
         />
@@ -490,6 +494,7 @@ export default function BeaconCampusApp() {
             onNextStep={() => patch({ navStepIndex: session.navStepIndex + 1 })}
             onPrevStep={() => patch({ navStepIndex: Math.max(0, session.navStepIndex - 1) })}
             onArrive={arrive}
+            onRequestAssistance={() => patch({ screen: "assistance" })}
           />
         ) : (
           <ErrorState title="Route unavailable" message="We couldn't build a route to this destination right now." />
@@ -499,6 +504,8 @@ export default function BeaconCampusApp() {
         (routePlan ? (
           <ArrivalScreen
             plan={routePlan}
+            routeMode={session.routeMode}
+            effectivePreferences={activeRoutePreferences}
             audioGuidance={preferences.audioGuidance}
             onDone={doneArrival}
             onViewBuilding={() => openBuilding(routePlan.destination.buildingId)}
@@ -553,6 +560,13 @@ export default function BeaconCampusApp() {
 
       {session.screen === "assistant" && <QuickQuestions campus={campus} />}
 
+      {session.screen === "assistance" && (
+        <AssistanceScreen
+          onOpenAccessibility={() => patch({ screen: "accessibility" })}
+          onSearchDestination={() => patch({ screen: "map", activeTab: "map" })}
+        />
+      )}
+
       {session.screen === "accessibility" && (
         <AccessibilityPanel
           campus={campus}
@@ -590,6 +604,7 @@ function previousScreenFor(screen: Screen): Screen {
     orientation: "explore",
     tour: "explore",
     assistant: "map",
+    assistance: "map",
     accessibility: "explore",
     help: "explore",
     admin: "map",
@@ -610,6 +625,7 @@ function screenTitle(screen: Screen): string | undefined {
     orientation: "Orientation",
     tour: "Campus Tour",
     assistant: "Beacon Assistant",
+    assistance: "Assistance",
     accessibility: "Accessibility",
     help: "Help",
     admin: "Admin Preview",

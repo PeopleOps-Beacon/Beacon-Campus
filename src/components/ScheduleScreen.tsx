@@ -1,9 +1,9 @@
-import { Navigation } from "lucide-react";
+import { CalendarX2, Navigation } from "lucide-react";
 import { DEMO_PERSONA, JORDAN_SCHEDULE } from "../data/beaconUniversity";
 import { getDestinationIntel } from "../lib/campusEngine";
 import type { Campus, CampusPreferences, ClassScheduleEntry } from "../types/campus";
 import { formatClockTime, getLeaveByInfo } from "../utils/time";
-import { Badge, Button, Card, SectionHeading, cx } from "./ui/Primitives";
+import { Badge, Button, Card, EmptyState, SectionHeading, cx } from "./ui/Primitives";
 
 function timeGreeting(now: Date): string {
   const h = now.getHours();
@@ -51,20 +51,28 @@ export function ScheduleScreen({
 
       <div>
         <SectionHeading title="Today" />
-        <div className="flex flex-col gap-3">
-          {JORDAN_SCHEDULE.map((entry) => (
-            <ClassRow
-              key={entry.id}
-              campus={campus}
-              entry={entry}
-              now={now}
-              startNodeId={startNodeId}
-              preferences={preferences}
-              onNavigate={() => onNavigateClass(entry)}
-              isNext={entry.id === upNext?.id}
-            />
-          ))}
-        </div>
+        {JORDAN_SCHEDULE.length === 0 ? (
+          <EmptyState
+            icon={<CalendarX2 size={22} aria-hidden="true" />}
+            title="Nothing on the schedule today"
+            message="Use search or Explore to find a building, department, or event instead."
+          />
+        ) : (
+          <div className="flex flex-col gap-3">
+            {JORDAN_SCHEDULE.map((entry) => (
+              <ClassRow
+                key={entry.id}
+                campus={campus}
+                entry={entry}
+                now={now}
+                startNodeId={startNodeId}
+                preferences={preferences}
+                onNavigate={() => onNavigateClass(entry)}
+                isNext={entry.id === upNext?.id}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

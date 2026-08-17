@@ -1,22 +1,28 @@
 import { useEffect } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { speak } from "../lib/speech";
-import type { RoutePlan } from "../types/campus";
+import { journeySummaryRows } from "../lib/campusEngine";
+import type { CampusPreferences, RouteMode, RoutePlan } from "../types/campus";
 import { Badge, Button, Card, IconTile } from "./ui/Primitives";
 
 export function ArrivalScreen({
   plan,
+  routeMode,
+  effectivePreferences,
   audioGuidance,
   onDone,
   onViewBuilding
 }: {
   plan: RoutePlan;
+  routeMode: RouteMode;
+  effectivePreferences: CampusPreferences;
   audioGuidance: boolean;
   onDone: () => void;
   onViewBuilding: () => void;
 }) {
   const arrivalStep = plan.steps.find((s) => s.category === "arrival");
   const { building } = plan.destination;
+  const summary = journeySummaryRows(plan, routeMode, effectivePreferences);
 
   useEffect(() => {
     if (audioGuidance && arrivalStep) speak(arrivalStep.instruction);
@@ -37,6 +43,17 @@ export function ArrivalScreen({
         <p className="text-base leading-relaxed text-white" aria-live="polite">
           {arrivalStep?.instruction}
         </p>
+      </Card>
+
+      <Card className="w-full text-left">
+        <dl className="flex flex-col gap-2">
+          {summary.map((row) => (
+            <div key={row.label} className="flex items-center justify-between gap-3 text-sm">
+              <dt className="text-white/50">{row.label}</dt>
+              <dd className="text-right font-medium text-white">{row.value}</dd>
+            </div>
+          ))}
+        </dl>
       </Card>
 
       <div className="flex w-full gap-2.5">

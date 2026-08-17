@@ -1,4 +1,4 @@
-import { Accessibility, Car, ChevronRight, HelpCircle, MapPin, ShieldCheck } from "lucide-react";
+import { Accessibility, Car, ChevronRight, HelpCircle, LifeBuoy, MapPin, ShieldCheck } from "lucide-react";
 import type { SavedCar } from "../hooks/useSavedCar";
 import type { Campus, ParkingLot, Persona } from "../types/campus";
 import { Badge, Card, IconTile } from "./ui/Primitives";
@@ -22,6 +22,7 @@ export function ProfileScreen({
   onWalkToCar,
   onForgetCar,
   onOpenAccessibility,
+  onOpenAssistance,
   onOpenAdmin,
   onOpenHelp
 }: {
@@ -34,6 +35,7 @@ export function ProfileScreen({
   onWalkToCar: () => void;
   onForgetCar: () => void;
   onOpenAccessibility: () => void;
+  onOpenAssistance: () => void;
   onOpenAdmin: () => void;
   onOpenHelp: () => void;
 }) {
@@ -79,6 +81,7 @@ export function ProfileScreen({
       )}
 
       <Row icon={Accessibility} label="Accessibility & Preferences" value="Routes, text size, voice" onClick={onOpenAccessibility} />
+      <Row icon={LifeBuoy} label="Assistance" value="Safety, medical, lost, report an issue" onClick={onOpenAssistance} />
       <Row icon={HelpCircle} label="Help" value="How Beacon works, data sources" onClick={onOpenHelp} />
       <Row icon={ShieldCheck} label="Admin Preview" value="Staff console (local demo)" onClick={onOpenAdmin} />
 
