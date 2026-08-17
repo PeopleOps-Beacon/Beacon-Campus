@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Accessibility, Car, Crosshair, Navigation, ShieldAlert, Toilet, X } from "lucide-react";
 import type { SavedCar } from "../hooks/useSavedCar";
 import type { Campus, CampusPreferences, DestinationIntel, RouteMode, SearchResult } from "../types/campus";
+import { ROUTE_MODE_META } from "../types/campus";
 import { formatWalkDistance, routeRationale } from "../lib/campusEngine";
 import { useComboboxNavigation } from "../hooks/useComboboxNavigation";
 import { BottomSheet } from "./BottomSheet";
@@ -20,6 +21,7 @@ export function MapScreen({
   onChangeStartPoint,
   preferences,
   routeMode,
+  onSelectRouteMode,
   onToggleAccessibleRoute,
   onFindRestroom,
   onOpenParkingList,
@@ -49,6 +51,7 @@ export function MapScreen({
   onChangeStartPoint: () => void;
   preferences: CampusPreferences;
   routeMode: RouteMode;
+  onSelectRouteMode: (mode: RouteMode) => void;
   onToggleAccessibleRoute: () => void;
   onFindRestroom: () => void;
   onOpenParkingList: () => void;
@@ -113,14 +116,12 @@ export function MapScreen({
             <Chip icon={<Toilet size={13} aria-hidden="true" />} label="Restroom" onClick={onFindRestroom} />
             <Chip icon={<Car size={13} aria-hidden="true" />} label="Parking" onClick={onOpenParkingList} />
             <Chip icon={<ShieldAlert size={13} aria-hidden="true" />} label="Emergency" onClick={onOpenEmergency} />
-            {savedCar && (
-              <Chip
-                accent
-                icon={<Car size={13} aria-hidden="true" />}
-                label={savedCarLot ? `My car · ${savedCarLot.name}` : "My car"}
-                onClick={onOpenReturnToCar}
-              />
-            )}
+            <Chip
+              accent={Boolean(savedCar)}
+              icon={<Car size={13} aria-hidden="true" />}
+              label={savedCar ? (savedCarLot ? `My car · ${savedCarLot.name}` : "My car") : "Remember my car"}
+              onClick={savedCar ? onOpenReturnToCar : onOpenParkingList}
+            />
           </div>
         )}
 
@@ -173,6 +174,7 @@ export function MapScreen({
             <ExpandedDestination
               intel={destinationIntel}
               routeMode={routeMode}
+              onSelectRouteMode={onSelectRouteMode}
               onStartRoute={onStartRoute}
               onViewDetails={onViewBuildingDetails}
               onClose={onCloseSheet}
@@ -241,15 +243,19 @@ function PeekDestination({ intel, onClose, onExpand }: { intel: DestinationIntel
   );
 }
 
+const ROUTE_MODE_ORDER: RouteMode[] = ["fastest", "calm", "mobility", "custom"];
+
 function ExpandedDestination({
   intel,
   routeMode,
+  onSelectRouteMode,
   onStartRoute,
   onViewDetails,
   onClose
 }: {
   intel: DestinationIntel;
   routeMode: RouteMode;
+  onSelectRouteMode: (mode: RouteMode) => void;
   onStartRoute: () => void;
   onViewDetails: () => void;
   onClose: () => void;
@@ -275,7 +281,30 @@ function ExpandedDestination({
         {intel.walkMinutes} min · {formatWalkDistance(intel.walkMinutes)} walk · {intel.recommendedEntrance.label}
         {intel.entranceSubstituted ? " (adjusted for a closure)" : ""}
       </p>
-      <p className="text-xs text-white/50">{routeRationale(routeMode, intel)}</p>
+
+      <div>
+        <div className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Route mode">
+          {ROUTE_MODE_ORDER.map((mode) => {
+            const active = routeMode === mode;
+            return (
+              <button
+                key={mode}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => onSelectRouteMode(mode)}
+                className={cx(
+                  "rounded-[var(--radius-control)] px-2 py-1.5 text-center text-xs font-semibold transition-all active:scale-95",
+                  active ? "bg-campus-gold text-campus-ink" : "bg-white/[0.06] text-white/70 hover:bg-white/[0.1]"
+                )}
+              >
+                {ROUTE_MODE_META[mode].label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1.5 text-xs text-white/50">{routeRationale(routeMode, intel)}</p>
+      </div>
 
       <div className="flex gap-2">
         <Button tone="secondary" className="flex-1" onClick={onViewDetails}>

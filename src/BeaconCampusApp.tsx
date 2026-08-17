@@ -388,6 +388,7 @@ export default function BeaconCampusApp() {
           onChangeStartPoint={() => patch({ screen: "start-point" })}
           preferences={preferences}
           routeMode={session.routeMode}
+          onSelectRouteMode={(mode) => patch({ routeMode: mode })}
           onToggleAccessibleRoute={() => {
             togglePreference("stepFree");
             analytics.trackPreferenceToggle("stepFree");
