@@ -22,7 +22,6 @@ import type { TabId } from "./components/shell/TabNavigator";
 import { LandingScreen } from "./components/LandingScreen";
 import { Onboarding } from "./components/Onboarding";
 import { MapScreen } from "./components/MapScreen";
-import { RouteModeScreen } from "./components/RouteModeScreen";
 import { NavigationScreen } from "./components/NavigationScreen";
 import { ArrivalScreen } from "./components/ArrivalScreen";
 import { ScheduleScreen } from "./components/ScheduleScreen";
@@ -51,7 +50,6 @@ type Screen =
   | "explore"
   | "alerts"
   | "profile"
-  | "route-options"
   | "navigation"
   | "arrival"
   | "building"
@@ -234,7 +232,7 @@ export default function BeaconCampusApp() {
       activeBuildingId: target.buildingId,
       activeParkingLotId: null,
       sheetExpanded: false,
-      routeMode: "fastest"
+      routeMode: "custom"
     });
   }
 
@@ -285,10 +283,6 @@ export default function BeaconCampusApp() {
   }
 
   function startRoute() {
-    patch({ screen: "route-options" });
-  }
-
-  function confirmRouteMode() {
     pulse(15);
     patch({ screen: "navigation", navStepIndex: 0 });
   }
@@ -359,7 +353,7 @@ export default function BeaconCampusApp() {
     );
   }
 
-  const hideTabs = (["route-options", "navigation", "arrival", "admin", "return-to-car"] as Screen[]).includes(session.screen);
+  const hideTabs = (["navigation", "arrival", "admin", "return-to-car"] as Screen[]).includes(session.screen);
   const isMap = session.screen === "map";
   const showBack = !PRIMARY_TABS.includes(session.screen);
 
@@ -486,23 +480,6 @@ export default function BeaconCampusApp() {
           <ErrorState title="No car saved" message="Remember My Car from a parking lot on the map first." />
         ))}
 
-      {session.screen === "route-options" &&
-        (session.activeDestinationTarget ? (
-          <RouteModeScreen
-            campus={campus}
-            target={session.activeDestinationTarget}
-            startNodeId={session.startNodeId}
-            basePreferences={preferences}
-            now={now}
-            selectedMode={session.routeMode}
-            onSelectMode={(mode) => patch({ routeMode: mode })}
-            onTogglePreference={togglePreference}
-            onContinue={confirmRouteMode}
-          />
-        ) : (
-          <ErrorState title="Route unavailable" message="We couldn't find a route to this destination right now." />
-        ))}
-
       {session.screen === "navigation" &&
         (routePlan ? (
           <NavigationScreen
@@ -601,8 +578,7 @@ export default function BeaconCampusApp() {
 
 function previousScreenFor(screen: Screen): Screen {
   const backMap: Partial<Record<Screen, Screen>> = {
-    "route-options": "map",
-    navigation: "route-options",
+    navigation: "map",
     arrival: "map",
     building: "map",
     directory: "map",
@@ -625,7 +601,6 @@ function previousScreenFor(screen: Screen): Screen {
 function screenTitle(screen: Screen): string | undefined {
   const titles: Partial<Record<Screen, string>> = {
     "start-point": "Starting Point",
-    "route-options": "Choose Route",
     navigation: "Directions",
     arrival: "Arrival",
     parking: "Parking",
