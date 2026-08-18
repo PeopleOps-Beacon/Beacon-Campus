@@ -1,41 +1,39 @@
 import type { ReactNode } from "react";
 import { cx } from "./ui/Primitives";
+import { Sheet } from "./ui/Sheet";
 
 /**
- * A sheet that peeks up from the bottom of the map instead of replacing it —
- * collapsed shows a compact preview, expanded shows full content, and the map
- * stays visible and in place either way. Toggled by tapping the handle
- * (not a drag gesture) so it stays fully keyboard- and switch-accessible.
+ * The peek variant of Beacon's shared Sheet — rises from the bottom of the
+ * map instead of replacing it: collapsed shows a compact preview, expanded
+ * shows full content, and the map stays visible and interactive either way.
+ * Toggled by tapping the handle (not a drag gesture) so it stays fully
+ * keyboard- and switch-accessible.
  */
 export function BottomSheet({
   expanded,
   onToggleExpanded,
+  label,
   peek,
   children
 }: {
   expanded: boolean;
   onToggleExpanded: () => void;
+  /** Announced as the sheet's accessible name, e.g. the destination or parking lot's name. */
+  label: string;
   peek: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <div
-      className={cx(
-        "absolute inset-x-0 bottom-0 z-20 flex flex-col overflow-hidden rounded-t-2xl border-t border-white/10 bg-campus-surface shadow-[0_-16px_40px_-16px_rgba(0,0,0,0.7)]",
-        "transition-[max-height] duration-300 [transition-timing-function:var(--ease-premium)]",
-        expanded ? "max-h-[78%]" : "max-h-[172px]"
-      )}
+    <Sheet
+      variant="peek"
+      className={cx("absolute inset-x-0 bottom-[var(--tabbar-clearance)]", expanded ? "max-h-[78%]" : "max-h-[172px]")}
+      onHandleActivate={onToggleExpanded}
+      handleLabel={expanded ? "Collapse details" : "Expand details"}
+      label={label}
     >
-      <button
-        type="button"
-        onClick={onToggleExpanded}
-        aria-expanded={expanded}
-        aria-label={expanded ? "Collapse details" : "Expand details"}
-        className="group flex shrink-0 flex-col items-center gap-2 pb-1 pt-2.5"
-      >
-        <span className="h-1 w-9 rounded-full bg-white/20 transition-transform group-active:scale-x-75" aria-hidden="true" />
-      </button>
-      <div className="overflow-y-auto px-4 pb-[max(0.9rem,env(safe-area-inset-bottom))]">{expanded ? children : peek}</div>
-    </div>
+      <div aria-expanded={expanded} className="overflow-y-auto px-4 pb-[max(0.9rem,env(safe-area-inset-bottom))]">
+        {expanded ? children : peek}
+      </div>
+    </Sheet>
   );
 }

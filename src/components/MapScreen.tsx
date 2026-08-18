@@ -142,7 +142,7 @@ export function MapScreen({
       </div>
 
       {searching && (
-        <div className="absolute inset-x-0 top-[70px] bottom-0 z-10 overflow-y-auto bg-campus-ink/98 px-3 pb-6 pt-2 backdrop-blur">
+        <div className="absolute inset-x-0 top-[70px] bottom-[var(--tabbar-clearance)] z-10 overflow-y-auto bg-campus-ink/98 px-3 pb-6 pt-2 backdrop-blur">
           <SearchResultsList
             results={searchResults}
             query={searchQuery}
@@ -153,14 +153,14 @@ export function MapScreen({
         </div>
       )}
 
-      {!searching && (
+      {!searching && !sheetExpanded && (
         <button
           type="button"
           onClick={onChangeStartPoint}
           aria-label={`Starting point: ${startPointLabel}. Tap to change.`}
           className={cx(
             "absolute right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-campus-surface/90 text-campus-sky shadow-[0_8px_20px_-8px_rgba(0,0,0,0.6)] backdrop-blur",
-            sheetOpen ? (sheetExpanded ? "bottom-[calc(78%+14px)]" : "bottom-[186px]") : "bottom-[14px]"
+            sheetOpen ? "bottom-[calc(var(--tabbar-clearance)+172px+14px)]" : "bottom-[calc(var(--tabbar-clearance)+14px)]"
           )}
         >
           <Crosshair size={19} aria-hidden="true" />
@@ -171,6 +171,7 @@ export function MapScreen({
         <BottomSheet
           expanded={sheetExpanded}
           onToggleExpanded={onToggleSheetExpanded}
+          label={destinationIntel?.title ?? activeParkingLot?.name ?? "Details"}
           peek={
             destinationIntel ? (
               <PeekDestination intel={destinationIntel} onClose={onCloseSheet} onExpand={onToggleSheetExpanded} />
@@ -215,10 +216,8 @@ function Chip({ icon, label, onClick, active, accent }: { icon: ReactNode; label
       type="button"
       onClick={onClick}
       className={cx(
-        "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-[0_6px_16px_-8px_rgba(0,0,0,0.6)] backdrop-blur transition-transform active:scale-95",
-        active || accent
-          ? "border-campus-gold/50 bg-campus-gold/15 text-campus-gold"
-          : "border-white/10 bg-campus-surface/90 text-white/80"
+        "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-[0_6px_16px_-8px_rgba(0,0,0,0.6)] backdrop-blur transition-transform active:translate-y-px",
+        active || accent ? "beacon-selected border-transparent" : "border-white/10 bg-campus-surface/90 text-white/80"
       )}
     >
       {icon}
@@ -250,7 +249,7 @@ function PeekDestination({ intel, onClose, onExpand }: { intel: DestinationIntel
             onClose();
           }
         }}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/40 hover:bg-white/[0.08] hover:text-white"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/40 hover:bg-white/[0.08] hover:text-white"
       >
         <X size={16} aria-hidden="true" />
       </span>
@@ -301,7 +300,7 @@ function ExpandedDestination({
             <DataProvenanceBadge provenance={intel.building.provenance} />
           </div>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/40 hover:bg-white/[0.08] hover:text-white">
+        <button type="button" onClick={onClose} aria-label="Close" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/40 hover:bg-white/[0.08] hover:text-white">
           <X size={16} aria-hidden="true" />
         </button>
       </div>
@@ -343,8 +342,8 @@ function ExpandedDestination({
                 aria-checked={active}
                 onClick={() => onSelectRouteMode(mode)}
                 className={cx(
-                  "rounded-[var(--radius-control)] px-2 py-1.5 text-center text-xs font-semibold transition-all active:scale-95",
-                  active ? "bg-campus-gold text-campus-ink" : "bg-white/[0.06] text-white/70 hover:bg-white/[0.1]"
+                  "rounded-[var(--radius-control)] px-2 py-1.5 text-center text-xs font-semibold transition-all active:translate-y-px",
+                  active ? "beacon-selected" : "bg-white/[0.06] text-white/70 hover:bg-white/[0.1]"
                 )}
               >
                 {ROUTE_MODE_META[mode].label}
@@ -420,7 +419,7 @@ function PeekParking({ lot, isCar, onClose, onExpand }: { lot: Campus["parkingLo
             onClose();
           }
         }}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/40 hover:bg-white/[0.08] hover:text-white"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/40 hover:bg-white/[0.08] hover:text-white"
       >
         <X size={16} aria-hidden="true" />
       </span>
@@ -459,7 +458,7 @@ function ExpandedParking({
             <Badge tone="neutral">{lot.accessibleSpaces} accessible</Badge>
           </div>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/40 hover:bg-white/[0.08] hover:text-white">
+        <button type="button" onClick={onClose} aria-label="Close" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/40 hover:bg-white/[0.08] hover:text-white">
           <X size={16} aria-hidden="true" />
         </button>
       </div>

@@ -102,7 +102,7 @@ function NextUpCard({
 
   return (
     <Card className="flex flex-col gap-3 border-campus-gold/25 bg-campus-gold/[0.06]">
-      <Badge tone="gold">Next · {formatClockTime(entry.time)}</Badge>
+      <Badge tone="selected">Next · {formatClockTime(entry.time)}</Badge>
       <div>
         <p className="text-lg font-bold text-white">
           {entry.courseName} <span className="font-normal text-white/50">({entry.course})</span>
@@ -180,7 +180,7 @@ function ClassRow({
             type="button"
             onClick={onNavigate}
             aria-label={`Navigate to ${entry.courseName}`}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-campus-gold text-campus-ink"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(180deg,#ffe39a,#f5b72f)] text-campus-goldink active:translate-y-px"
           >
             <Navigation size={15} />
           </button>

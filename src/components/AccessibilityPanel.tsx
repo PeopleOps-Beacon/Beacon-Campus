@@ -137,7 +137,7 @@ export function AccessibilityPanel({
                           onClick={() => onSetDuration(row.key, duration.ms)}
                           className={cx(
                             "rounded-full px-2.5 py-1 text-xs font-medium",
-                            isSelected ? "bg-campus-gold text-campus-ink" : "bg-white/[0.06] text-white/60 hover:bg-white/[0.1]"
+                            isSelected ? "beacon-selected" : "bg-white/[0.06] text-white/60 hover:bg-white/[0.1]"
                           )}
                         >
                           {duration.label}

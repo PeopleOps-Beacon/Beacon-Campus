@@ -67,7 +67,7 @@ export function AdminDashboard({
               onClick={() => setSection(s.id)}
               className={cx(
                 "flex shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] px-3.5 py-2 text-xs font-semibold",
-                active ? "bg-campus-gold text-campus-ink" : "bg-white/[0.06] text-white/70"
+                active ? "beacon-selected" : "bg-white/[0.06] text-white/70"
               )}
             >
               <Icon size={13} aria-hidden="true" />

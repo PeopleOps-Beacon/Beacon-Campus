@@ -59,7 +59,11 @@ export function ProfileScreen({
             <p className="text-xs text-white/60">{savedCarLot?.name ?? savedCar.lotId}</p>
             {savedCar.note && <p className="mt-0.5 text-xs text-campus-gold">"{savedCar.note}"</p>}
             <div className="mt-2.5 flex gap-2">
-              <button type="button" onClick={onWalkToCar} className="rounded-full bg-campus-gold px-3 py-1.5 text-xs font-semibold text-campus-ink">
+              <button
+                type="button"
+                onClick={onWalkToCar}
+                className="rounded-full bg-[linear-gradient(180deg,#ffe39a,#f5b72f)] px-3 py-1.5 text-xs font-semibold text-campus-goldink active:translate-y-px"
+              >
                 Walk to car
               </button>
               <button type="button" onClick={onForgetCar} className="rounded-full bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-white/70">

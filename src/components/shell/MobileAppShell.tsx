@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ChevronLeft, ShieldCheck, Sparkles } from "lucide-react";
 import { BeaconLogo } from "../ui/BeaconLogo";
+import { cx } from "../ui/Primitives";
 import { TabNavigator, type TabId } from "./TabNavigator";
 
 export function MobileAppShell({
@@ -33,7 +34,7 @@ export function MobileAppShell({
   children: ReactNode;
 }) {
   return (
-    <div className="flex h-full w-full flex-1 flex-col bg-campus-ink">
+    <div className="relative flex h-full w-full flex-1 flex-col bg-campus-ink">
       {!hideHeader && (
         <header className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="flex min-w-0 items-center gap-2">
@@ -75,7 +76,15 @@ export function MobileAppShell({
         </header>
       )}
 
-      <main className={fullBleed ? "relative flex-1 overflow-hidden" : "no-scrollbar flex-1 overflow-y-auto px-4 pb-8 pt-4"}>{children}</main>
+      <main
+        className={
+          fullBleed
+            ? "relative flex-1 overflow-hidden"
+            : cx("no-scrollbar flex-1 overflow-y-auto px-4 pt-4", hideTabs ? "pb-8" : "pb-[var(--tabbar-clearance)]")
+        }
+      >
+        {children}
+      </main>
 
       {!hideTabs && <TabNavigator activeTab={activeTab} onChange={onTabChange} alertCount={alertCount} />}
     </div>

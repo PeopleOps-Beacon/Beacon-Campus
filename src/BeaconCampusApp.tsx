@@ -412,11 +412,27 @@ export default function BeaconCampusApp() {
       fullBleed={isMap}
       title={screenTitle(session.screen)}
       subtitle={campus.universityName}
-      onBack={showBack ? () => patch({ screen: previousScreenFor(session.screen), activeTab: "map" }) : undefined}
+      onBack={
+        showBack
+          ? () =>
+              // Arrival's header Back must end the journey the same way "Done"
+              // does — otherwise leaving via the top-left chevron instead of
+              // the primary button would land on Map with the just-completed
+              // destination/route still active, contradicting the "arrival
+              // ends the session" guarantee "Done" already provides.
+              session.screen === "arrival" ? doneArrival() : patch({ screen: previousScreenFor(session.screen), activeTab: "map" })
+          : undefined
+      }
       onAssistant={() => patch({ screen: "assistant" })}
       onAdmin={() => patch({ screen: "admin" })}
     >
-      <div key={session.screen} className={isMap ? "h-full" : "animate-screen-in"}>
+      {/* Map's wrapper uses `absolute inset-0` rather than `h-full`: `h-full` is a
+          percentage height, and percentage heights can fail to resolve against
+          this shell's flex-grow-derived `main` in this environment (verified via
+          isolated reproduction — an explicit length always resolves, `height:100%`
+          does not) — `absolute inset-0` fills `main` (already `position: relative`)
+          without depending on percentage resolution at all. */}
+      <div key={session.screen} className={isMap ? "absolute inset-0" : "animate-screen-in"}>
       {session.screen === "map" && (
         <MapScreen
           campus={campus}
@@ -534,6 +550,7 @@ export default function BeaconCampusApp() {
             stepIndex={session.navStepIndex}
             audioGuidance={preferences.audioGuidance}
             effectivePreferences={activeRoutePreferences}
+            routeMode={session.routeMode}
             onNextStep={() => patch({ navStepIndex: session.navStepIndex + 1 })}
             onPrevStep={() => patch({ navStepIndex: Math.max(0, session.navStepIndex - 1) })}
             onArrive={arrive}
@@ -551,8 +568,10 @@ export default function BeaconCampusApp() {
             routeMode={session.routeMode}
             effectivePreferences={activeRoutePreferences}
             audioGuidance={preferences.audioGuidance}
+            hasSavedCar={!!savedCar}
             onDone={doneArrival}
             onViewBuilding={() => openBuilding(routePlan.destination.buildingId)}
+            onReturnToCar={handleWalkToCar}
           />
         ) : (
           <ErrorState title="Something went wrong" message="We lost track of your route." />

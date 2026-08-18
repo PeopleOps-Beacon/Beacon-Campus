@@ -3,9 +3,11 @@
 @tailwind utilities;
 
 :root {
-  /* Canvas/primary/danger match Beacon Airport's tokens exactly for brand
+  /* Background/primary match Beacon Airport's actual mobile app tokens
+     exactly (verified against src/poc/beacon-poc.css's .beacon-poc scope,
+     not the desktop enterprise dashboard's separate token layer) for brand
      family cohesion; secondary/success are campus-specific accents. */
-  --color-background: #07090b;
+  --color-background: #030405;
   --color-surface: #12161c;
   --color-elevated: #181d25;
   --color-border: rgba(255, 255, 255, 0.08);
@@ -22,6 +24,10 @@
   --radius-card: 8px;
   --radius-control: 8px;
   --radius-pill: 999px;
+  /* Outer shell radius for the floating tab bar — a step up from
+     --radius-control so the five nested control pills read as contained
+     within it, without going all the way to a full pill shape. */
+  --radius-nav: 20px;
 
   --font-display: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);
   --font-title: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
@@ -29,11 +35,23 @@
   --font-caption: 0.8125rem;
   --font-label: 0.75rem;
 
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -12px rgba(0, 0, 0, 0.55);
-  --shadow-card-hover: 0 2px 6px rgba(0, 0, 0, 0.5), 0 20px 48px -16px rgba(0, 0, 0, 0.6);
+  /* Moderate version of Beacon's floating-surface shadow (GSP mobile's own
+     card shadow is 0 28px 80px rgba(0,0,0,.48) — too large for Campus's
+     denser, smaller mobile cards, so this keeps the same soft/large/low-opacity
+     character scaled down, plus a hairline top highlight folded into the same
+     declaration so Card doesn't need a second box-shadow rule). */
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 6px rgba(0, 0, 0, 0.35), 0 20px 48px -10px rgba(0, 0, 0, 0.5);
+  --shadow-card-hover: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 10px rgba(0, 0, 0, 0.4), 0 28px 64px -12px rgba(0, 0, 0, 0.55);
+  --shadow-sheet: 0 -16px 40px -16px rgba(0, 0, 0, 0.7);
 
   --ease-premium: cubic-bezier(0.2, 0.8, 0.2, 1);
   --touch-target: 44px;
+
+  /* Total space the floating tab bar occupies at the bottom of the shell —
+     safe area + the gap that makes it read as floating + its own height.
+     Reused by MobileAppShell's content padding and BottomSheet's peek
+     positioning so both clear the bar from one source of truth. */
+  --tabbar-clearance: calc(5.25rem + env(safe-area-inset-bottom));
 
   color-scheme: dark;
 }
@@ -70,8 +88,8 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
   border-radius: 6px;
 }
 
@@ -102,7 +120,7 @@ body {
 @keyframes screen-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -111,5 +129,75 @@ body {
 }
 
 .animate-screen-in {
-  animation: screen-in 0.22s var(--ease-premium);
+  animation: screen-in 0.18s var(--ease-premium);
+}
+
+/* Beacon card surface — a very soft diagonal highlight wash layered over the
+   card's solid background color, matching GSP's card recipe (the hairline
+   top highlight lives in --shadow-card so it stays in the same box-shadow
+   declaration as the card's drop shadow).
+   box-shadow is set here directly (rather than via a Tailwind shadow-[var(...)]
+   arbitrary class) because Tailwind's arbitrary shadow-color heuristic treats a
+   bare var() inside shadow-[...] as a shadow *color* token, not a full box-shadow
+   value, and silently emits no visible shadow — a pre-existing issue, not
+   introduced by this pass, now fixed at the source. */
+.card-surface {
+  background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
+  box-shadow: var(--shadow-card);
+}
+
+button:hover > .card-surface {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Beacon's one selected/active/current/chosen treatment — the gold gradient
+   pill GSP uses identically for its tab bar, toggles, and mode controls.
+   Apply only to genuine selection controls, never to status/decorative gold. */
+.beacon-selected {
+  background-image: linear-gradient(180deg, #ffe39a, #f5b72f);
+  color: #15110a;
+}
+
+/* Shared bottom-sheet shell (see components/ui/Sheet.tsx). box-shadow is set
+   here directly rather than via a Tailwind shadow-[var(...)] arbitrary class
+   for the same reason as .card-surface — Tailwind's shadow-color heuristic
+   silently drops a bare var() reference instead of using it as the shadow. */
+.sheet-surface {
+  box-shadow: var(--shadow-sheet);
+}
+
+@keyframes sheet-slide-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sheet-enter {
+  animation: sheet-slide-in 0.22s var(--ease-premium);
+}
+
+/* Floating tab bar surface (see components/shell/TabNavigator.tsx) — reuses
+   --shadow-card rather than inventing a new recipe, since a floating pill
+   sitting above content needs the same all-around elevated-card shadow a
+   Card gets, not the sheet's upward-only projection. Direct box-shadow for
+   the same Tailwind shadow-[var(...)] reason as .card-surface/.sheet-surface. */
+.tabbar-surface {
+  background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+  box-shadow: var(--shadow-card);
+}
+
+.sheet-backdrop-enter {
+  animation: sheet-backdrop-in 0.18s ease-out;
 }

@@ -8,9 +8,8 @@ export function Card({ className, children, ...rest }: HTMLAttributes<HTMLDivEle
   return (
     <div
       className={cx(
-        "rounded-[var(--radius-card)] border border-white/[0.06] bg-campus-surface p-4 shadow-[var(--shadow-card)]",
+        "card-surface rounded-[var(--radius-card)] border border-campus-gold/[0.12] bg-campus-surface p-4",
         "transition-shadow duration-200 [transition-timing-function:var(--ease-premium)]",
-        "[button:hover>&]:shadow-[var(--shadow-card-hover)]",
         className
       )}
       {...rest}
@@ -29,16 +28,16 @@ export function Button({
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & { tone?: ButtonTone }) {
   const toneClasses: Record<ButtonTone, string> = {
-    primary: "bg-campus-gold text-campus-ink hover:brightness-95 active:brightness-90",
-    secondary: "bg-white/[0.08] text-white hover:bg-white/[0.12] border border-white/10",
+    primary: "bg-[linear-gradient(180deg,#ffe39a,#f5b72f)] text-campus-goldink hover:brightness-95 active:brightness-90",
+    secondary: "bg-white/[0.08] text-white hover:bg-white/[0.12] border border-campus-gold/[0.15]",
     ghost: "bg-transparent text-white hover:bg-white/[0.06]",
     danger: "bg-red-500/15 text-red-300 hover:bg-red-500/25 border border-red-500/30"
   };
   return (
     <button
       className={cx(
-        "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 text-sm font-semibold transition-all duration-150 [transition-timing-function:var(--ease-premium)] active:scale-[0.97]",
-        "disabled:opacity-40 disabled:pointer-events-none disabled:active:scale-100",
+        "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 text-sm font-semibold transition-all duration-150 [transition-timing-function:var(--ease-premium)] active:translate-y-px",
+        "disabled:opacity-40 disabled:pointer-events-none disabled:active:translate-y-0",
         toneClasses[tone],
         className
       )}
@@ -49,7 +48,7 @@ export function Button({
   );
 }
 
-type BadgeTone = "neutral" | "info" | "warning" | "success" | "danger" | "gold";
+type BadgeTone = "neutral" | "info" | "warning" | "success" | "danger" | "gold" | "selected";
 
 export function Badge({ tone = "neutral", children, className }: { tone?: BadgeTone; children: ReactNode; className?: string }) {
   const toneClasses: Record<BadgeTone, string> = {
@@ -58,7 +57,9 @@ export function Badge({ tone = "neutral", children, className }: { tone?: BadgeT
     warning: "bg-campus-gold/15 text-campus-amber",
     success: "bg-campus-green/15 text-campus-green",
     danger: "bg-red-500/15 text-red-300",
-    gold: "bg-campus-gold text-campus-ink"
+    gold: "bg-campus-gold text-campus-ink",
+    /** Beacon's selected/current-state gradient — use only for "this is the active/chosen one," never for plain status or decoration. */
+    selected: "beacon-selected"
   };
   return (
     <span
@@ -120,7 +121,8 @@ export function IconTile({ children, tone = "neutral" }: { children: ReactNode; 
     warning: "bg-campus-gold/15 text-campus-amber",
     success: "bg-campus-green/15 text-campus-green",
     danger: "bg-red-500/15 text-red-300",
-    gold: "bg-campus-gold text-campus-ink"
+    gold: "bg-campus-gold text-campus-ink",
+    selected: "beacon-selected"
   };
   return (
     <div className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", toneClasses[tone])}>{children}</div>
