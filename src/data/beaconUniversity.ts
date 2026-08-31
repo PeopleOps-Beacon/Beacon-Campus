@@ -9,6 +9,7 @@ import type {
   ClassScheduleEntry,
   ConstructionNotice,
   DataProvenance,
+  Elevator,
   FacilityCategory,
   OrientationItem,
   ParkingLot,
@@ -181,7 +182,8 @@ const buildings: Building[] = [
       { id: "union-restroom", type: "restroom", label: "1st floor, near the food court", floor: 1 },
       { id: "union-arestroom", type: "accessible-restroom", label: "1st floor, near the east entrance", floor: 1 },
       { id: "union-service-animal", type: "service-animal-relief", label: "Outdoor relief area, east entrance", floor: 1 },
-      { id: "union-lactation", type: "lactation-room", label: "1st floor, near Student Affairs", floor: 1 }
+      { id: "union-lactation", type: "lactation-room", label: "1st floor, near Student Affairs", floor: 1 },
+      { id: "union-quiet-space", type: "quiet-space", label: "Reading lounge, 1st floor, past the food court", floor: 1 }
     ],
     hours: { opens: "06:00", closes: "23:59", note: "Open until midnight most nights" },
     nearbyParkingIds: ["lot-e", "lot-a"],
@@ -217,7 +219,9 @@ const buildings: Building[] = [
       { id: "library-printing", type: "printing", label: "Print/copy station, 1st floor", floor: 1 },
       { id: "library-restroom", type: "restroom", label: "1st floor, near the main entrance", floor: 1 },
       { id: "library-arestroom", type: "accessible-restroom", label: "1st floor, near the east entrance", floor: 1 },
-      { id: "library-service-animal", type: "service-animal-relief", label: "Outdoor relief area, east entrance", floor: 1 }
+      { id: "library-service-animal", type: "service-animal-relief", label: "Outdoor relief area, east entrance", floor: 1 },
+      { id: "library-elevator", type: "elevator", label: "Elevator, near the east entrance", floor: 1 },
+      { id: "library-quiet-space", type: "quiet-space", label: "Reading nook near the atrium, 1st floor", floor: 1 }
     ],
     hours: { opens: "07:00", closes: "01:00", note: "Extended hours during finals week" },
     nearbyParkingIds: ["lot-e"],
@@ -266,7 +270,8 @@ const buildings: Building[] = [
       { id: "dept-advising", name: "Academic Advising", floor: 2, roomId: "founders-215", appointmentRequired: true, hoursNote: "Open until 5:00 PM" }
     ],
     amenities: [
-      { id: "founders-elevator", type: "elevator", label: "Elevator lobby, inside the south entrance", floor: 1 },
+      { id: "founders-elevator", type: "elevator", label: "South lobby elevator, inside the south entrance", floor: 1 },
+      { id: "founders-elevator-north", type: "elevator", label: "North wing elevator, reachable from the accessible entrance via the 1st floor corridor", floor: 1 },
       { id: "founders-restroom", type: "restroom", label: "1st floor, near the north entrance", floor: 1 },
       { id: "founders-arestroom", type: "accessible-restroom", label: "2nd floor, near the elevator", floor: 2 },
       { id: "founders-lactation", type: "lactation-room", label: "2nd floor, near Financial Aid", floor: 2 }
@@ -374,7 +379,7 @@ const buildings: Building[] = [
     id: "public-safety",
     name: "Clemson University Public Safety",
     abbreviation: "PS",
-    aliases: ["campus police", "public safety", "police", "cupd", "security", "emergency", "blue light phone"],
+    aliases: ["campus police", "campus safety", "public safety", "police", "cupd", "security", "emergency", "blue light phone"],
     category: "health-safety",
     description: "Clemson University Police, Fire & EMS, and Emergency Management. Not a replacement for 911 — for emergencies, always call 911 or use a campus Blue Light emergency phone.",
     address: "Clemson, SC 29634",
@@ -731,10 +736,22 @@ const alerts: CampusAlert[] = [
     id: "alert-library-elevator",
     severity: "advisory",
     title: "Cooper Library — Elevator Temporarily Unavailable",
-    message: "The elevator near the east entrance of Cooper Library is temporarily out of service. The east entrance ramp is still accessible for step-free entry to the 1st floor.",
+    message: "The elevator near the east entrance of Cooper Library is temporarily out of service. The east entrance ramp is still accessible for step-free entry to the 1st floor. There is no alternate elevator to the upper floors in this building right now.",
     affectedBuildingIds: ["library"],
     startsAt: "2026-08-13T08:00:00-04:00",
-    active: true
+    active: true,
+    elevatorId: "library-elevator"
+  },
+  {
+    id: "alert-sikes-elevator",
+    severity: "advisory",
+    title: "Sikes Hall — South Lobby Elevator Unavailable",
+    message: "The south lobby elevator at Sikes Hall is temporarily out of service. Beacon has rerouted step-free journeys to the north wing elevator, reachable from the same accessible entrance — this adds about 3 minutes.",
+    affectedBuildingIds: ["founders"],
+    startsAt: "2026-08-14T09:00:00-04:00",
+    active: true,
+    addedWalkMinutes: 3,
+    elevatorId: "founders-elevator"
   },
   {
     id: "alert-lot-b-closed",
@@ -914,7 +931,25 @@ const services: CampusService[] = [
   { id: "svc-counseling", name: "Counseling and Psychological Services (CAPS)", category: "counseling", buildingId: "health-center", departmentId: "dept-counseling", description: "Confidential mental health counseling for students.", appointmentRequired: true },
   { id: "svc-health", name: "Student Health Services", category: "health", buildingId: "health-center", departmentId: "dept-health", description: "Primary care, urgent care, and immunizations." },
   { id: "svc-police", name: "Campus Police", category: "police", buildingId: "public-safety", departmentId: "dept-safety", description: "Campus safety, escorts, and emergency response. For emergencies, call 911." },
-  { id: "svc-accessibility", name: "Accessibility Services", category: "accessibility", buildingId: "founders", description: "Accommodations, adaptive technology, and accessible routing support." },
+  {
+    id: "svc-accessibility",
+    name: "Accessibility Services",
+    category: "accessibility",
+    buildingId: "founders",
+    description:
+      "Academic accommodations, adaptive technology, and accessible-routing support for students, faculty, staff, and visitors — no diagnosis or documentation required to start a conversation.",
+    hoursNote: "Monday–Friday, 8 AM–5 PM. Walk-ins welcome; appointments recommended for accommodation planning.",
+    phone: "(864) 555-0199",
+    email: "accessibility@beaconcampus.example.edu",
+    accommodations: [
+      "Extended time on exams",
+      "Note-taking support",
+      "Assistive technology lab",
+      "Alternative-format course materials",
+      "Temporary accessibility support (injury, surgery recovery, short-term mobility needs)",
+      "Accessible campus transportation guidance"
+    ]
+  },
   { id: "svc-it-help-desk", name: "IT Help Desk", category: "it-help-desk", buildingId: "library", description: "Tech support, laptop loaners, and Wi-Fi troubleshooting." },
   { id: "svc-bookstore", name: "Clemson University Barnes & Noble Bookstore", category: "bookstore", buildingId: "student-union", description: "Textbooks, course materials, and Clemson gear. (Real store is at the Douthit Hills Hub, 110 Cherry Road — placed here for this prototype's simplified map.)" },
   { id: "svc-dining", name: "Dining Services", category: "dining", buildingId: "dining-commons", description: "Meal plans, dining hours, and menus." },
@@ -1027,6 +1062,42 @@ function facilitiesFromAmenities(allBuildings: Building[]): CampusFacility[] {
   );
 }
 
+/**
+ * Elevator status — separate from the `elevator` Amenity (which just marks
+ * "this building has one"). Only buildings where Beacon needs to reason
+ * about outages/alternates are modeled here; the two outages below are
+ * illustrative demo states, not real Clemson facilities conditions — see
+ * dataDisclosure.
+ */
+const elevators: Elevator[] = [
+  { id: "richardson-elevator", buildingId: "richardson", label: "Elevator, 30 ft inside the south entrance", floorsServed: [1, 2], status: "operational" },
+  { id: "jefferson-elevator", buildingId: "jefferson", label: "Elevator near the south entrance", floorsServed: [1], status: "operational" },
+  { id: "union-elevator", buildingId: "student-union", label: "Elevator near the east entrance", floorsServed: [1, 2], status: "operational" },
+  {
+    id: "founders-elevator",
+    buildingId: "founders",
+    label: "South lobby elevator",
+    floorsServed: [1, 2],
+    status: "outage",
+    alternateElevatorId: "founders-elevator-north",
+    note: "Reported out of service this morning — Facilities has been notified.",
+    lastUpdated: "2026-08-14T09:00:00-04:00"
+  },
+  { id: "founders-elevator-north", buildingId: "founders", label: "North wing elevator", floorsServed: [1, 2], status: "operational" },
+  {
+    id: "library-elevator",
+    buildingId: "library",
+    label: "East entrance elevator",
+    floorsServed: [1, 2, 3, 4],
+    status: "outage",
+    note: "Out of service — there is no alternate elevator to the upper floors in this building right now.",
+    lastUpdated: "2026-08-13T08:00:00-04:00"
+  },
+  { id: "oak-elevator", buildingId: "oak", label: "Elevator near the east entrance", floorsServed: [1], status: "operational" },
+  { id: "pine-elevator", buildingId: "pine", label: "Elevator near the east entrance", floorsServed: [1], status: "operational" },
+  { id: "fine-arts-elevator", buildingId: "fine-arts", label: "Elevator, main lobby", floorsServed: [1], status: "operational" }
+];
+
 export const BEACON_UNIVERSITY: Campus = {
   id: "clemson-university",
   universityName: "Clemson University",
@@ -1045,6 +1116,7 @@ export const BEACON_UNIVERSITY: Campus = {
   orientationItems,
   quickQuestions,
   facilities: facilitiesFromAmenities(buildings),
+  elevators,
   aliasMap,
   dataDisclosure: {
     summary:

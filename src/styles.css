@@ -62,6 +62,23 @@ html.large-text {
   font-size: 1.16rem;
 }
 
+/* High Contrast accessibility preference — Campus leans heavily on
+   opacity-tiered white text (text-white/70, /55, /45 …) for visual
+   hierarchy; rather than rewrite every component, this boosts every one of
+   those tiers at once when the preference is on. !important is deliberate
+   here — this is an explicit, opted-in override mode meant to win regardless
+   of a component's own styling, the same justification `.motion-reduced`
+   already uses for reduced motion below. */
+html.high-contrast [class*="text-white/"] {
+  color: rgba(255, 255, 255, 0.94) !important;
+}
+html.high-contrast [class*="border-white/"] {
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+html.high-contrast [class*="bg-white/"] {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+}
+
 * {
   box-sizing: border-box;
 }

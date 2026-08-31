@@ -74,6 +74,7 @@ export type AmenityType =
   | "accessible-restroom"
   | "service-animal-relief"
   | "lactation-room"
+  | "quiet-space"
   | "elevator"
   | "stairs"
   | "emergency-exit"
@@ -209,6 +210,27 @@ export interface CampusAlert {
   addedWalkMinutes?: number;
   substituteEntranceId?: string;
   affectedParkingIds?: string[];
+  /** Links this alert to a specific Elevator record it's currently affecting — lets routing react to the outage, not just display the message. */
+  elevatorId?: string;
+}
+
+/**
+ * A specific elevator Beacon can reason about — not just "this building has
+ * an elevator" (Amenity), but "is it working right now, and if not, is
+ * there another one." `alternateElevatorId` is only meaningful when set;
+ * a building can have an elevator with no accessible alternate, which is
+ * itself an important, honestly-surfaced state (see ElevatorStatusCard).
+ */
+export interface Elevator {
+  id: string;
+  buildingId: string;
+  label: string;
+  floorsServed: number[];
+  status: "operational" | "outage";
+  alternateElevatorId?: string;
+  /** e.g. "Reported out of service this morning — Facilities has been notified." */
+  note?: string;
+  lastUpdated?: string; // ISO
 }
 
 export interface ConstructionNotice {
@@ -291,6 +313,11 @@ export interface CampusService {
   departmentId?: string;
   description: string;
   appointmentRequired?: boolean;
+  phone?: string;
+  email?: string;
+  hoursNote?: string;
+  /** e.g. "Extended time on exams", "Note-taking support", "Assistive technology lab" — plain-language, not diagnostic. */
+  accommodations?: string[];
 }
 
 export interface QuickQuestion {
@@ -316,7 +343,9 @@ export type FacilityCategory =
   | "family-restroom"
   | "quiet-space"
   | "water-fountain"
-  | "charging-station";
+  | "charging-station"
+  /** A manually-chosen building added as a route stop — not ranked/recommended like the other categories, just routed through as-is. */
+  | "custom-stop";
 
 export const FACILITY_CATEGORY_META: Record<FacilityCategory, { label: string; shortLabel: string }> = {
   restroom: { label: "Restroom", shortLabel: "Restroom" },
@@ -326,7 +355,8 @@ export const FACILITY_CATEGORY_META: Record<FacilityCategory, { label: string; s
   "family-restroom": { label: "Family Restroom", shortLabel: "Family" },
   "quiet-space": { label: "Quiet Space", shortLabel: "Quiet Space" },
   "water-fountain": { label: "Water Fountain", shortLabel: "Water" },
-  "charging-station": { label: "Charging Station", shortLabel: "Charging" }
+  "charging-station": { label: "Charging Station", shortLabel: "Charging" },
+  "custom-stop": { label: "Stop", shortLabel: "Stop" }
 };
 
 /** Categories currently offered in the "Add a Stop" flow. Others in FacilityCategory are architecture-ready but not yet populated with fixture data or surfaced in the UI. */
@@ -334,7 +364,8 @@ export const ADDABLE_STOP_CATEGORIES: FacilityCategory[] = [
   "restroom",
   "accessible-restroom",
   "service-animal-relief",
-  "lactation-room"
+  "lactation-room",
+  "quiet-space"
 ];
 
 export interface CampusFacility {
@@ -378,6 +409,7 @@ export interface Campus {
   orientationItems: OrientationItem[];
   quickQuestions: QuickQuestion[];
   facilities: CampusFacility[];
+  elevators: Elevator[];
   aliasMap: Record<string, string>; // lowercase alias -> canonical searchable id ("building:id", "room:id", etc.)
   /** Overall data-integrity summary shown in Help — what's verified vs. illustrative, and where verified facts came from. */
   dataDisclosure: {
@@ -422,6 +454,16 @@ export interface DestinationIntel {
   recommendedParking?: ParkingLot;
   parkingWalkMinutes?: number;
   activeAlerts: CampusAlert[];
+  /**
+   * Set only when the destination floor requires an elevator and Beacon
+   * could not confirm a working one — a genuinely unresolved accessibility
+   * gap, not a routing bug, and never silently hidden from a step-free
+   * traveler (see the "could not identify a confirmed accessible path"
+   * state in AssistanceScreen / DestinationCard).
+   */
+  unconfirmedAccessiblePath?: boolean;
+  /** The elevator actually used to reach this destination's floor, when one is required and known. */
+  elevatorUsed?: Elevator;
 }
 
 export type StepCategory = "direction" | "landmark" | "accessibility" | "advisory" | "arrival" | "reassurance" | "waypoint";
@@ -451,6 +493,24 @@ export interface CampusPreferences {
   simplifiedDirections: boolean;
   /** Adds a rotating, calm reassurance line to each guidance step. */
   reassurance: boolean;
+  /** Biases in-building arrival guidance toward the elevator when both stairs and an elevator exist. */
+  avoidStairs: boolean;
+  /** Soft weighting: penalizes edges with a steeper elevationChange. */
+  minimizeElevation: boolean;
+  /** Soft weighting: penalizes outdoor edges — climate-controlled, connector-heavy routing. */
+  indoorPreferred: boolean;
+  /** Surfaces seating opportunities along the route and prioritizes them in Rest & Resume. */
+  seatingStops: boolean;
+  /** Route-condition changes (recalculation, entrance substitution, elevator outage) are always shown as a visible banner, not only spoken or implied. */
+  visualAlerts: boolean;
+  /** Higher-contrast color treatment app-wide. */
+  highContrast: boolean;
+  /** Soft weighting: scales down the other comfort-preference penalties below, so distance/time dominates scoring more when a shorter walk matters most. */
+  minimizeDistance: boolean;
+  /** Soft weighting: penalizes indoor-connector edges — the inverse of indoorPreferred. */
+  outdoorPreferred: boolean;
+  /** Not a routing weight — pre-selects the Service Animal Relief Area stop on the "needs along the way" screen. */
+  serviceAnimalSupport: boolean;
 }
 
 /**
@@ -470,9 +530,9 @@ export const ROUTE_MODE_META: Record<RouteMode, { label: string; description: st
 };
 
 export const ROUTE_MODE_OVERRIDES: Record<RouteMode, Partial<CampusPreferences> | null> = {
-  fastest: { stepFree: false, avoidCrowds: false, calmRoute: false, restroomStop: false },
-  calm: { stepFree: false, avoidCrowds: true, calmRoute: true },
-  mobility: { stepFree: true },
+  fastest: { stepFree: false, avoidCrowds: false, calmRoute: false, restroomStop: false, minimizeElevation: false, indoorPreferred: false, minimizeDistance: true },
+  calm: { stepFree: false, avoidCrowds: true, calmRoute: true, indoorPreferred: true },
+  mobility: { stepFree: true, avoidStairs: true, minimizeElevation: true, seatingStops: true },
   custom: null
 };
 
@@ -490,7 +550,16 @@ export const DEFAULT_PREFERENCES: CampusPreferences = {
   largerText: false,
   audioGuidance: false,
   simplifiedDirections: false,
-  reassurance: false
+  reassurance: false,
+  avoidStairs: false,
+  minimizeElevation: false,
+  indoorPreferred: false,
+  seatingStops: false,
+  visualAlerts: false,
+  highContrast: false,
+  minimizeDistance: false,
+  outdoorPreferred: false,
+  serviceAnimalSupport: false
 };
 
 export interface GuidanceStep {
@@ -507,6 +576,20 @@ export interface GuidanceStep {
   waypointIndex?: number;
 }
 
+/**
+ * A plain-language exertion estimate derived from a route's grade and
+ * surface data — separate from step-free (pass/fail) because two
+ * "accessible" routes can still differ a lot in how demanding they are to
+ * actually walk, wheel, or push a stroller along. Inputs are illustrative
+ * (see the edge-authoring note in beaconUniversity.ts), so this stays a
+ * plain-language label, never a fabricated precise number.
+ */
+export interface ExertionEstimate {
+  label: "Easy" | "Moderate" | "Demanding";
+  tone: "success" | "warning" | "danger";
+  note: string;
+}
+
 export interface RoutePlan {
   destination: DestinationIntel;
   steps: GuidanceStep[];
@@ -516,4 +599,5 @@ export interface RoutePlan {
   waypoints: RouteWaypoint[];
   /** Resolved walking-graph node path, including any waypoint detours — for map rendering. */
   path: string[];
+  exertion?: ExertionEstimate | null;
 }

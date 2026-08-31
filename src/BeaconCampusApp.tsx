@@ -15,9 +15,21 @@ import { useAnalytics } from "./hooks/useAnalytics";
 import { useNotificationRead } from "./hooks/useNotificationRead";
 import { useSavedCar } from "./hooks/useSavedCar";
 import type { DestinationTarget } from "./lib/campusEngine";
-import { effectivePreferences, type Building, type BuildingCategory, type Campus, type CampusEvent, type ClassScheduleEntry, type Persona, type RouteMode, type SearchResult } from "./types/campus";
+import {
+  effectivePreferences,
+  FACILITY_CATEGORY_META,
+  type Building,
+  type BuildingCategory,
+  type Campus,
+  type CampusEvent,
+  type ClassScheduleEntry,
+  type Persona,
+  type RouteMode,
+  type SearchResult
+} from "./types/campus";
 
 import { MobileAppShell } from "./components/shell/MobileAppShell";
+import { PhoneFrame } from "./components/shell/PhoneFrame";
 import type { TabId } from "./components/shell/TabNavigator";
 import { LandingScreen } from "./components/LandingScreen";
 import { Onboarding } from "./components/Onboarding";
@@ -43,6 +55,9 @@ import { ReturnToCarScreen } from "./components/ReturnToCarScreen";
 import { AssistanceScreen } from "./components/AssistanceScreen";
 import { HelpScreen } from "./components/HelpScreen";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
+import { JourneyNeedsScreen } from "./components/onboarding/JourneyNeedsScreen";
+import { JourneyStopsScreen } from "./components/onboarding/JourneyStopsScreen";
+import { JourneyDestinationScreen } from "./components/onboarding/JourneyDestinationScreen";
 import { ErrorState } from "./components/ui/Primitives";
 
 type Screen =
@@ -67,7 +82,10 @@ type Screen =
   | "accessibility"
   | "help"
   | "admin"
-  | "return-to-car";
+  | "return-to-car"
+  | "onboarding-needs"
+  | "onboarding-stops"
+  | "onboarding-destination";
 
 const PRIMARY_TABS: Screen[] = ["map", "schedule", "explore", "alerts", "profile"];
 
@@ -81,6 +99,8 @@ interface SessionState {
   sheetExpanded: boolean;
   routeMode: RouteMode;
   activeWaypointFacilityIds: string[];
+  /** Manually-searched buildings added as stops — routed through directly, alongside (but tracked separately from) category-based facility waypoints. */
+  activeCustomStopBuildingIds: string[];
   activeEventId: string | null;
   navStepIndex: number;
   directoryFilter: { title: string; category?: BuildingCategory } | null;
@@ -99,6 +119,7 @@ const DEFAULT_SESSION: SessionState = {
   sheetExpanded: false,
   routeMode: "fastest",
   activeWaypointFacilityIds: [],
+  activeCustomStopBuildingIds: [],
   activeEventId: null,
   navStepIndex: 0,
   directoryFilter: null,
@@ -168,6 +189,15 @@ export default function BeaconCampusApp() {
   const [onboardingSeen, setOnboardingSeen] = useState<boolean>(() =>
     typeof window !== "undefined" ? window.localStorage.getItem("beacon-campus-onboarding-seen") === "1" : false
   );
+  /**
+   * The post-Begin "personalize your journey" flow (Needs → Stops →
+   * Destination) — a one-time sequence, same persistence pattern as the
+   * persona picker above. Tracked separately so returning users never see
+   * it again once they've completed or skipped it once.
+   */
+  const [journeyOnboardingSeen, setJourneyOnboardingSeen] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.localStorage.getItem("beacon-campus-journey-onboarding-seen") === "1" : false
+  );
 
   const [session, setSession] = useState<SessionState>(loadSession);
   const [searchQuery, setSearchQuery] = useState("");
@@ -201,9 +231,10 @@ export default function BeaconCampusApp() {
       fromNodeId: session.startNodeId,
       preferences: activeRoutePreferences,
       waypointFacilityIds: session.activeWaypointFacilityIds,
+      customStopBuildingIds: session.activeCustomStopBuildingIds,
       now
     });
-  }, [campus, session.activeDestinationTarget, session.startNodeId, activeRoutePreferences, session.activeWaypointFacilityIds, now]);
+  }, [campus, session.activeDestinationTarget, session.startNodeId, activeRoutePreferences, session.activeWaypointFacilityIds, session.activeCustomStopBuildingIds, now]);
 
   const routePlan = useMemo(() => {
     if (!session.activeDestinationTarget) return null;
@@ -211,9 +242,21 @@ export default function BeaconCampusApp() {
       fromNodeId: session.startNodeId,
       preferences: activeRoutePreferences,
       waypointFacilityIds: session.activeWaypointFacilityIds,
+      customStopBuildingIds: session.activeCustomStopBuildingIds,
       now
     });
-  }, [campus, session.activeDestinationTarget, session.startNodeId, activeRoutePreferences, session.activeWaypointFacilityIds, now]);
+  }, [campus, session.activeDestinationTarget, session.startNodeId, activeRoutePreferences, session.activeWaypointFacilityIds, session.activeCustomStopBuildingIds, now]);
+
+  const onboardingStopLabels = useMemo(() => {
+    const facilityLabels = session.activeWaypointFacilityIds
+      .map((id) => campus.facilities.find((f) => f.id === id))
+      .filter((f): f is NonNullable<typeof f> => Boolean(f))
+      .map((f) => FACILITY_CATEGORY_META[f.category].label);
+    const customLabels = session.activeCustomStopBuildingIds
+      .map((id) => campus.buildings.find((b) => b.id === id)?.name)
+      .filter((n): n is string => Boolean(n));
+    return [...facilityLabels, ...customLabels];
+  }, [campus, session.activeWaypointFacilityIds, session.activeCustomStopBuildingIds]);
 
   const activeEvent: CampusEvent | undefined = session.activeEventId ? campus.events.find((e) => e.id === session.activeEventId) : undefined;
 
@@ -239,7 +282,29 @@ export default function BeaconCampusApp() {
       activeParkingLotId: null,
       sheetExpanded: false,
       routeMode: "custom",
-      activeWaypointFacilityIds: []
+      activeWaypointFacilityIds: [],
+      activeCustomStopBuildingIds: []
+    });
+  }
+
+  /**
+   * Used only by the post-Begin journey onboarding's destination step —
+   * unlike goToDestination (used everywhere else), this deliberately keeps
+   * whatever stops the traveler already chose on the "needs along the way"
+   * screen, so picking a destination doesn't silently discard them.
+   */
+  function goToDestinationFromOnboarding(target: DestinationTarget) {
+    setSearchQuery("");
+    analytics.trackDestinationView(target.buildingId);
+    completeJourneyOnboarding();
+    patch({
+      screen: "map",
+      activeTab: "map",
+      activeDestinationTarget: target,
+      activeBuildingId: target.buildingId,
+      activeParkingLotId: null,
+      sheetExpanded: true,
+      routeMode: "custom"
     });
   }
 
@@ -264,6 +329,34 @@ export default function BeaconCampusApp() {
     patch({ activeWaypointFacilityIds: session.activeWaypointFacilityIds.filter((id) => id !== facilityId) });
   }
 
+  function addCustomStop(buildingId: string) {
+    if (session.activeCustomStopBuildingIds.includes(buildingId)) return;
+    patch({ activeCustomStopBuildingIds: [...session.activeCustomStopBuildingIds, buildingId] });
+  }
+
+  function removeCustomStop(buildingId: string) {
+    patch({ activeCustomStopBuildingIds: session.activeCustomStopBuildingIds.filter((id) => id !== buildingId) });
+  }
+
+  /** Facility waypoints are visited in array order, so reordering the array genuinely reorders the route — not cosmetic. */
+  function reorderWaypoint(facilityId: string, direction: -1 | 1) {
+    const ids = [...session.activeWaypointFacilityIds];
+    const index = ids.indexOf(facilityId);
+    const target = index + direction;
+    if (index === -1 || target < 0 || target >= ids.length) return;
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    patch({ activeWaypointFacilityIds: ids });
+  }
+
+  function reorderCustomStop(buildingId: string, direction: -1 | 1) {
+    const ids = [...session.activeCustomStopBuildingIds];
+    const index = ids.indexOf(buildingId);
+    const target = index + direction;
+    if (index === -1 || target < 0 || target >= ids.length) return;
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    patch({ activeCustomStopBuildingIds: ids });
+  }
+
   /**
    * Adding a stop mid-navigation recalculates from where the traveler
    * currently is, not the original start point, and preserves the final
@@ -286,7 +379,8 @@ export default function BeaconCampusApp() {
       activeBuildingId: null,
       activeParkingLotId: null,
       sheetExpanded: false,
-      activeWaypointFacilityIds: []
+      activeWaypointFacilityIds: [],
+      activeCustomStopBuildingIds: []
     });
   }
 
@@ -302,6 +396,22 @@ export default function BeaconCampusApp() {
     }
     const target = destinationTargetFromSearchResult(campus, result);
     if (target) goToDestination(target);
+  }
+
+  function handleSelectOnboardingDestination(result: SearchResult) {
+    if (result.kind === "event") {
+      completeJourneyOnboarding();
+      patch({ screen: "event-detail", activeEventId: result.id });
+      setSearchQuery("");
+      return;
+    }
+    if (result.kind === "parking") {
+      completeJourneyOnboarding();
+      selectParkingPin(result.id);
+      return;
+    }
+    const target = destinationTargetFromSearchResult(campus, result);
+    if (target) goToDestinationFromOnboarding(target);
   }
 
   function handleSelectCategory(id: CategoryId) {
@@ -360,11 +470,19 @@ export default function BeaconCampusApp() {
     window.localStorage.setItem("beacon-campus-persona", p);
     window.localStorage.setItem("beacon-campus-onboarding-seen", "1");
     setOnboardingSeen(true);
+    if (!journeyOnboardingSeen) patch({ screen: "onboarding-needs" });
   }
 
   function skipOnboarding() {
     window.localStorage.setItem("beacon-campus-onboarding-seen", "1");
     setOnboardingSeen(true);
+    if (!journeyOnboardingSeen) patch({ screen: "onboarding-needs" });
+  }
+
+  /** Marks the post-Begin personalization flow as seen for good — called whether the traveler finishes it or skips out partway. */
+  function completeJourneyOnboarding() {
+    window.localStorage.setItem("beacon-campus-journey-onboarding-seen", "1");
+    setJourneyOnboardingSeen(true);
   }
 
   function handleWalkToCar() {
@@ -378,25 +496,31 @@ export default function BeaconCampusApp() {
 
   if (!hasBegun) {
     return (
-      <div className="flex h-full w-full flex-1 flex-col">
-        <LandingScreen onBegin={() => setHasBegun(true)} />
-      </div>
+      <PhoneFrame>
+        <div className="flex h-full w-full flex-1 flex-col">
+          <LandingScreen onBegin={() => setHasBegun(true)} />
+        </div>
+      </PhoneFrame>
     );
   }
 
   if (!onboardingSeen) {
     return (
-      <div className="flex h-full w-full flex-1 flex-col overflow-y-auto">
-        <Onboarding onSelect={handlePersonaSelect} onSkip={skipOnboarding} />
-      </div>
+      <PhoneFrame>
+        <div className="flex h-full w-full flex-1 flex-col overflow-y-auto">
+          <Onboarding onSelect={handlePersonaSelect} onSkip={skipOnboarding} />
+        </div>
+      </PhoneFrame>
     );
   }
 
-  const hideTabs = (["navigation", "arrival", "admin", "return-to-car"] as Screen[]).includes(session.screen);
+  const isJourneyOnboarding = (["onboarding-needs", "onboarding-stops", "onboarding-destination"] as Screen[]).includes(session.screen);
+  const hideTabs = (["navigation", "arrival", "admin", "return-to-car"] as Screen[]).includes(session.screen) || isJourneyOnboarding;
   const isMap = session.screen === "map";
   const showBack = !PRIMARY_TABS.includes(session.screen);
 
   return (
+    <PhoneFrame wide={session.screen === "admin"}>
     <MobileAppShell
       activeTab={session.activeTab}
       onTabChange={(tab: TabId) => {
@@ -408,7 +532,7 @@ export default function BeaconCampusApp() {
       }}
       alertCount={unreadCount}
       hideTabs={hideTabs}
-      hideHeader={isMap}
+      hideHeader={isMap || isJourneyOnboarding}
       fullBleed={isMap}
       title={screenTitle(session.screen)}
       subtitle={campus.universityName}
@@ -648,8 +772,57 @@ export default function BeaconCampusApp() {
       {session.screen === "admin" && (
         <AdminDashboard campus={campus} actions={actions} hasCustomizations={hasCustomizations} analytics={analytics} />
       )}
+
+      {session.screen === "onboarding-needs" && (
+        <JourneyNeedsScreen
+          preferences={preferences}
+          onTogglePreference={(key) => {
+            togglePreference(key);
+            analytics.trackPreferenceToggle(key);
+          }}
+          onContinue={() => patch({ screen: "onboarding-stops" })}
+          onSkip={() => patch({ screen: "onboarding-stops" })}
+        />
+      )}
+
+      {session.screen === "onboarding-stops" && (
+        <JourneyStopsScreen
+          campus={campus}
+          fromNodeId={session.startNodeId}
+          preferences={preferences}
+          activeWaypointFacilityIds={session.activeWaypointFacilityIds}
+          activeCustomStopBuildingIds={session.activeCustomStopBuildingIds}
+          onAddWaypoint={addWaypoint}
+          onRemoveWaypoint={removeWaypoint}
+          onReorderWaypoint={reorderWaypoint}
+          onAddCustomStop={addCustomStop}
+          onRemoveCustomStop={removeCustomStop}
+          onReorderCustomStop={reorderCustomStop}
+          onContinue={() => patch({ screen: "onboarding-destination" })}
+          onSkip={() => patch({ screen: "onboarding-destination" })}
+          onBack={() => patch({ screen: "onboarding-needs" })}
+        />
+      )}
+
+      {session.screen === "onboarding-destination" && (
+        <JourneyDestinationScreen
+          campus={campus}
+          preferences={preferences}
+          stopLabels={onboardingStopLabels}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+          searchResults={searchResults}
+          onSelectDestination={handleSelectOnboardingDestination}
+          onSkip={() => {
+            completeJourneyOnboarding();
+            patch({ screen: "schedule", activeTab: "myday" });
+          }}
+          onBack={() => patch({ screen: "onboarding-stops" })}
+        />
+      )}
       </div>
     </MobileAppShell>
+    </PhoneFrame>
   );
 }
 

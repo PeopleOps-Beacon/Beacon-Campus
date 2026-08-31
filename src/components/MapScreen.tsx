@@ -6,6 +6,7 @@ import { ROUTE_MODE_META } from "../types/campus";
 import { formatWalkDistance, routeRationale } from "../lib/campusEngine";
 import { useComboboxNavigation } from "../hooks/useComboboxNavigation";
 import { AddStopSheet } from "./AddStopSheet";
+import { RouteAccessibilitySummary } from "./accessibility/AccessibilityCards";
 import { BottomSheet } from "./BottomSheet";
 import { BuildingVisual } from "./BuildingVisual";
 import { CampusMap } from "./CampusMap";
@@ -309,6 +310,8 @@ function ExpandedDestination({
         {intel.walkMinutes} min · {formatWalkDistance(intel.walkMinutes)} walk · {intel.recommendedEntrance.label}
         {intel.entranceSubstituted ? " (adjusted for a closure)" : ""}
       </p>
+
+      <RouteAccessibilitySummary preferences={effectivePreferences} intel={intel} />
 
       {activeWaypoints.length > 0 && (
         <div className="flex flex-col gap-1.5">

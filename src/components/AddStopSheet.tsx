@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Accessibility, ArrowLeft, Baby, PawPrint, Toilet, X } from "lucide-react";
+import { Accessibility, ArrowLeft, Baby, MapPin, PawPrint, Toilet, X } from "lucide-react";
 import { recommendFacility } from "../lib/campusEngine";
 import {
   ADDABLE_STOP_CATEGORIES,
@@ -19,7 +19,8 @@ const CATEGORY_ICON: Record<FacilityCategory, typeof Toilet> = {
   "family-restroom": Toilet,
   "quiet-space": Toilet,
   "water-fountain": Toilet,
-  "charging-station": Toilet
+  "charging-station": Toilet,
+  "custom-stop": MapPin
 };
 
 /**

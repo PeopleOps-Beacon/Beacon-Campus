@@ -6,7 +6,9 @@ import type {
   CampusFacility,
   CampusPreferences,
   DestinationIntel,
+  Elevator,
   Entrance,
+  ExertionEstimate,
   FacilityCategory,
   GuidanceStep,
   ParkingEligibility,
@@ -81,22 +83,40 @@ export interface RouteWeightOptions {
   preferStepFree?: boolean;
   avoidCrowds?: boolean;
   calmRoute?: boolean;
+  minimizeElevation?: boolean;
+  indoorPreferred?: boolean;
+  outdoorPreferred?: boolean;
+  /** Scales down every other soft comfort penalty below (still applied, just softened) so distance/time dominates scoring more. */
+  minimizeDistance?: boolean;
 }
 
 /**
  * Weighted "cost" for a given edge under the active preferences — this is
  * what Dijkstra minimizes. It is deliberately different from the edge's real
- * walking time: avoidCrowds/calmRoute nudge the algorithm toward a calmer
- * path even when it takes a little longer, exactly like a real wayfinding
- * preference should.
+ * walking time: avoidCrowds/calmRoute/minimizeElevation/indoorPreferred/
+ * outdoorPreferred all nudge the algorithm toward a more comfortable path
+ * even when it takes a little longer, exactly like a real wayfinding
+ * preference should. minimizeDistance doesn't remove those preferences —
+ * it softens their pull so a genuinely shorter option can still win.
  */
 function edgeCost(edge: Campus["pathEdges"][number], opts: RouteWeightOptions): number {
   let cost = edge.minutes;
-  if (opts.avoidCrowds && edge.crowdLevel) cost += edge.crowdLevel * 1.2;
+  const comfortScale = opts.minimizeDistance ? 0.4 : 1;
+
+  if (opts.avoidCrowds && edge.crowdLevel) cost += edge.crowdLevel * 1.2 * comfortScale;
   if (opts.calmRoute) {
-    if (edge.noiseLevel) cost += edge.noiseLevel * 0.6;
-    if (edge.lowStimulation) cost -= 0.8;
+    if (edge.noiseLevel) cost += edge.noiseLevel * 0.6 * comfortScale;
+    if (edge.lowStimulation) cost -= 0.8 * comfortScale;
   }
+  if (opts.minimizeElevation && edge.elevationChange) cost += edge.elevationChange * 1.1 * comfortScale;
+  if (opts.indoorPreferred && edge.outdoor) cost += 1.5 * comfortScale;
+  if (opts.outdoorPreferred && !edge.outdoor) cost += 1.5 * comfortScale;
+  // Unpaved surfaces are harder going for wheels, canes, and casters even
+  // when technically step-free — a soft nudge toward the paved alternate
+  // when one exists, not a hard exclusion (unpaved isn't necessarily
+  // impassable).
+  if (opts.preferStepFree && edge.surface === "unpaved") cost += 2 * comfortScale;
+
   return cost;
 }
 
@@ -287,7 +307,11 @@ export function planReturnToCar(
   const weightOpts: RouteWeightOptions = {
     preferStepFree: preferences.stepFree,
     avoidCrowds: preferences.avoidCrowds,
-    calmRoute: preferences.calmRoute
+    calmRoute: preferences.calmRoute,
+    minimizeElevation: preferences.minimizeElevation,
+    indoorPreferred: preferences.indoorPreferred,
+    outdoorPreferred: preferences.outdoorPreferred,
+    minimizeDistance: preferences.minimizeDistance
   };
   const result = findShortestPath(campus, fromNodeId, lot.id, weightOpts);
   if (!result) return null;
@@ -334,11 +358,52 @@ export interface DestinationTarget {
 // the leg to the first stop.
 // ---------------------------------------------------------------------------
 
-/** A facility on an upper floor is only step-free reachable if its building has an elevator — Campus doesn't track per-amenity accessibility separately from that. */
+// ---------------------------------------------------------------------------
+// Elevator intelligence — a building having an `elevator` Amenity only means
+// one exists; these helpers answer the question that actually matters for
+// routing right now: is one working, and if not, is there another.
+// ---------------------------------------------------------------------------
+
+export function elevatorsForBuilding(campus: Campus, buildingId: string): Elevator[] {
+  return campus.elevators.filter((e) => e.buildingId === buildingId);
+}
+
+export interface ElevatorAvailability {
+  /** True when the building has no modeled elevators at all (nothing to report on) or at least one operational one. */
+  available: boolean;
+  /** The elevator actually usable right now, if any. */
+  elevator?: Elevator;
+  /** Set when the building's only/all elevators are down and Beacon found a working alternate. */
+  reroutedFrom?: Elevator;
+}
+
+/** Resolves which elevator (if any) a traveler needing floor access at this building can actually use right now. */
+export function resolveElevatorAvailability(campus: Campus, buildingId: string): ElevatorAvailability {
+  const elevators = elevatorsForBuilding(campus, buildingId);
+  if (elevators.length === 0) return { available: true };
+
+  const down = elevators.filter((e) => e.status === "outage");
+  if (down.length === 0) return { available: true, elevator: elevators[0] };
+
+  // At least one elevator here is down — even when another was already fine,
+  // that's still a real outage worth explaining, not something to silently
+  // skip past. Prefer the alternate a down elevator explicitly names; fall
+  // back to any other operational elevator in the building.
+  const namedAlternate = down
+    .map((d) => elevators.find((e) => e.id === d.alternateElevatorId && e.status === "operational"))
+    .find((e): e is Elevator => Boolean(e));
+  const alternate = namedAlternate ?? elevators.find((e) => e.status === "operational");
+
+  if (alternate) return { available: true, elevator: alternate, reroutedFrom: down[0] };
+  return { available: false };
+}
+
+/** A facility on an upper floor is only step-free reachable if its building has a working elevator right now. */
 export function facilityAccessible(campus: Campus, facility: CampusFacility): boolean {
   if (facility.floor <= 1) return true;
   const building = getBuilding(campus, facility.buildingId);
-  return building?.amenities.some((a) => a.type === "elevator") ?? false;
+  if (!building?.amenities.some((a) => a.type === "elevator")) return false;
+  return resolveElevatorAvailability(campus, facility.buildingId).available;
 }
 
 export interface FacilityRecommendation {
@@ -373,7 +438,11 @@ export function recommendFacility(
   const weightOpts: RouteWeightOptions = {
     preferStepFree: preferences.stepFree,
     avoidCrowds: preferences.avoidCrowds,
-    calmRoute: preferences.calmRoute
+    calmRoute: preferences.calmRoute,
+    minimizeElevation: preferences.minimizeElevation,
+    indoorPreferred: preferences.indoorPreferred,
+    outdoorPreferred: preferences.outdoorPreferred,
+    minimizeDistance: preferences.minimizeDistance
   };
 
   const direct = findShortestPath(campus, fromNodeId, destinationBuildingId, weightOpts);
@@ -412,6 +481,57 @@ export function recommendFacility(
   return { category, options, excludedForAccessibility };
 }
 
+export interface NearestFacilityResult {
+  facility: CampusFacility;
+  building: Building;
+  minutes: number;
+  accessible: boolean;
+}
+
+/**
+ * Ranks facility instances of a category by walk time from `fromNodeId`
+ * alone — no destination required. Used before a destination is chosen yet
+ * (the "needs along the way" onboarding step, Rest & Resume): the traveler
+ * picks a specific facility now, and once a destination exists later, the
+ * normal waypoint machinery (planWeightedPath) routes through whichever
+ * facility they already chose, in the correct order, honoring the same
+ * accessibility preferences the whole way.
+ */
+export function nearestFacilities(
+  campus: Campus,
+  category: FacilityCategory,
+  fromNodeId: string,
+  preferences: CampusPreferences,
+  limit = 5
+): NearestFacilityResult[] {
+  const weightOpts: RouteWeightOptions = {
+    preferStepFree: preferences.stepFree,
+    avoidCrowds: preferences.avoidCrowds,
+    calmRoute: preferences.calmRoute,
+    minimizeElevation: preferences.minimizeElevation,
+    indoorPreferred: preferences.indoorPreferred,
+    outdoorPreferred: preferences.outdoorPreferred,
+    minimizeDistance: preferences.minimizeDistance
+  };
+
+  const results: NearestFacilityResult[] = [];
+  for (const facility of campus.facilities) {
+    if (facility.category !== category || facility.buildingId === fromNodeId) continue;
+    const building = getBuilding(campus, facility.buildingId);
+    if (!building) continue;
+
+    const accessible = facilityAccessible(campus, facility);
+    if (preferences.stepFree && !accessible) continue;
+
+    const route = findShortestPath(campus, fromNodeId, facility.buildingId, weightOpts);
+    if (!route) continue;
+
+    results.push({ facility, building, minutes: route.minutes, accessible });
+  }
+
+  return results.sort((a, b) => a.minutes - b.minutes).slice(0, limit);
+}
+
 function toRouteWaypoint(campus: Campus, facility: CampusFacility): RouteWaypoint {
   const building = getBuilding(campus, facility.buildingId);
   const label = FACILITY_CATEGORY_META[facility.category].label;
@@ -421,6 +541,17 @@ function toRouteWaypoint(campus: Campus, facility: CampusFacility): RouteWaypoin
     label: building?.name ? `${label} — ${building.name}` : label,
     buildingId: facility.buildingId,
     note: `Quick stop: ${label.toLowerCase()} inside ${building?.name ?? label}.`
+  };
+}
+
+/** A manually-searched building added as a stop — routed through directly rather than ranked/recommended like a facility category. */
+function toCustomRouteWaypoint(building: Building): RouteWaypoint {
+  return {
+    facilityId: `custom-${building.id}`,
+    category: "custom-stop",
+    label: building.name,
+    buildingId: building.id,
+    note: `Stop: ${building.name}.`
   };
 }
 
@@ -448,12 +579,17 @@ function planWeightedPath(
   fromNodeId: string,
   buildingId: string,
   preferences: CampusPreferences,
-  waypointFacilityIds: string[] = []
+  waypointFacilityIds: string[] = [],
+  customStopBuildingIds: string[] = []
 ): WeightedRoute {
   const weightOpts: RouteWeightOptions = {
     preferStepFree: preferences.stepFree,
     avoidCrowds: preferences.avoidCrowds,
-    calmRoute: preferences.calmRoute
+    calmRoute: preferences.calmRoute,
+    minimizeElevation: preferences.minimizeElevation,
+    indoorPreferred: preferences.indoorPreferred,
+    outdoorPreferred: preferences.outdoorPreferred,
+    minimizeDistance: preferences.minimizeDistance
   };
 
   let facilities = waypointFacilityIds
@@ -477,14 +613,19 @@ function planWeightedPath(
     return true;
   });
 
-  const stopSequence = [fromNodeId, ...facilities.map((f) => f.buildingId), buildingId];
+  const customBuildings = customStopBuildingIds
+    .map((id) => getBuilding(campus, id))
+    .filter((b): b is Building => b !== undefined)
+    .filter((b) => b.id !== buildingId && b.id !== fromNodeId);
+
+  const stopSequence = [fromNodeId, ...facilities.map((f) => f.buildingId), ...customBuildings.map((b) => b.id), buildingId];
   const legs: PathResult[] = [];
   for (let i = 0; i < stopSequence.length - 1; i++) {
     const leg = findShortestPath(campus, stopSequence[i], stopSequence[i + 1], weightOpts);
     if (!leg) {
       // A waypoint leg is unreachable under the active preferences — fall back
       // to the direct route rather than silently dropping the destination.
-      return planWeightedPath(campus, fromNodeId, buildingId, preferences, []);
+      return planWeightedPath(campus, fromNodeId, buildingId, preferences, [], []);
     }
     legs.push(leg);
   }
@@ -493,13 +634,17 @@ function planWeightedPath(
   let minutes = legs.reduce((total, leg) => total + leg.minutes, 0);
   if (preferences.extraTime) minutes = Math.round(minutes * 1.25);
 
-  return { path, minutes, waypoints: facilities.map((f) => toRouteWaypoint(campus, f)) };
+  return {
+    path,
+    minutes,
+    waypoints: [...facilities.map((f) => toRouteWaypoint(campus, f)), ...customBuildings.map(toCustomRouteWaypoint)]
+  };
 }
 
 export function getDestinationIntel(
   campus: Campus,
   target: DestinationTarget,
-  opts: { fromNodeId?: string; preferences?: CampusPreferences; now?: Date; waypointFacilityIds?: string[] } = {}
+  opts: { fromNodeId?: string; preferences?: CampusPreferences; now?: Date; waypointFacilityIds?: string[]; customStopBuildingIds?: string[] } = {}
 ): DestinationIntel | null {
   const building = getBuilding(campus, target.buildingId);
   if (!building) return null;
@@ -512,7 +657,7 @@ export function getDestinationIntel(
     target.floor ?? (target.roomNumber ? building.rooms.find((r) => r.number === target.roomNumber)?.floor : undefined);
 
   const fromNodeId = opts.fromNodeId ?? "green";
-  const route = planWeightedPath(campus, fromNodeId, building.id, preferences, opts.waypointFacilityIds ?? []);
+  const route = planWeightedPath(campus, fromNodeId, building.id, preferences, opts.waypointFacilityIds ?? [], opts.customStopBuildingIds ?? []);
   const entranceRec = recommendEntrance(campus, building, { preferStepFree: preferences.stepFree });
   const openStatus = buildingOpenStatus(building, opts.now);
   const parkingRec = resolveParkingForBuilding(campus, building, { eligibility: target.eligibility });
@@ -524,6 +669,23 @@ export function getDestinationIntel(
   if (preferences.calmRoute) notes.push("Route adjusted for a quieter, lower-stimulation path.");
   route.waypoints.forEach((waypoint) => notes.push(waypoint.note));
 
+  // Elevator intelligence — only material for someone who actually needs it
+  // to reach this floor without stairs. A rerouted-to-alternate elevator is
+  // good news, explained plainly; no working elevator at all is a genuine,
+  // honestly-surfaced gap, never silently hidden behind normal arrival copy.
+  const needsElevator = (preferences.stepFree || preferences.avoidStairs) && (resolvedFloor ?? 1) > 1;
+  const elevatorAvailability = needsElevator ? resolveElevatorAvailability(campus, building.id) : null;
+  let elevatorAddedMinutes = 0;
+  if (elevatorAvailability?.reroutedFrom && elevatorAvailability.elevator) {
+    const relatedAlert = activeAlerts.find((a) => a.elevatorId === elevatorAvailability!.reroutedFrom!.id);
+    elevatorAddedMinutes = relatedAlert?.addedWalkMinutes ?? 3;
+    notes.push(
+      `${elevatorAvailability.reroutedFrom.label} is currently unavailable. Beacon rerouted you to the ${elevatorAvailability.elevator.label.toLowerCase()} — this adds about ${elevatorAddedMinutes} min.`
+    );
+  } else if (elevatorAvailability && !elevatorAvailability.available) {
+    notes.push("Beacon could not confirm a working elevator to this floor right now.");
+  }
+
   return {
     buildingId: building.id,
     building,
@@ -531,7 +693,7 @@ export function getDestinationIntel(
     subtitle: target.subtitle,
     roomNumber: target.roomNumber,
     floor: resolvedFloor,
-    walkMinutes: route.minutes + entranceRec.addedMinutes,
+    walkMinutes: route.minutes + entranceRec.addedMinutes + elevatorAddedMinutes,
     recommendedEntrance: entranceRec.entrance,
     entranceSubstituted: entranceRec.substituted,
     addedMinutes: entranceRec.addedMinutes,
@@ -539,7 +701,9 @@ export function getDestinationIntel(
     accessibilityNote: notes.length > 0 ? notes.join(" ") : undefined,
     recommendedParking: parkingRec?.lot,
     parkingWalkMinutes: parkingRec?.walkMinutes,
-    activeAlerts
+    activeAlerts,
+    unconfirmedAccessiblePath: elevatorAvailability ? !elevatorAvailability.available : false,
+    elevatorUsed: elevatorAvailability?.elevator
   };
 }
 
@@ -547,7 +711,11 @@ const REASSURANCE_MESSAGES = [
   "You're doing great — no need to rush.",
   "Almost there. Take your time.",
   "You're on the right path.",
-  "Nice and easy — you've got this."
+  "Nice and easy — you've got this.",
+  "You're on the correct path.",
+  "You've completed the longest part of this walk.",
+  "Your destination is just a couple of minutes away.",
+  "You're right where you should be."
 ];
 
 function reassuranceMessageFor(seed: string): string {
@@ -621,7 +789,14 @@ const JOURNEY_PREFERENCE_LABELS: Partial<Record<keyof CampusPreferences, string>
   restroomStop: "Restroom stop",
   extraTime: "Extra time",
   simplifiedDirections: "Simplified directions",
-  reassurance: "Reassurance prompts"
+  reassurance: "Reassurance prompts",
+  avoidStairs: "Elevator preferred over stairs",
+  minimizeElevation: "Flatter route",
+  indoorPreferred: "Indoor-preferred route",
+  seatingStops: "Seating along the route",
+  visualAlerts: "Visual route alerts",
+  minimizeDistance: "Shortest walking distance",
+  outdoorPreferred: "Outdoor-preferred route"
 };
 
 /** A short journey recap for the arrival screen — destination, time, route mode used, which accessibility/comfort preferences actually shaped this route, and whether an alert changed anything. */
@@ -676,10 +851,28 @@ export function getGuidanceSteps(
     });
   }
 
+  if ((preferences.stepFree || preferences.avoidStairs) && (intel.floor ?? 1) > 1) {
+    const elevatorAlert = intel.activeAlerts.find((a) => a.elevatorId);
+    if (elevatorAlert) {
+      steps.push({
+        id: `step-${order}`,
+        order: order++,
+        instruction: elevatorAlert.message,
+        category: "advisory",
+        minutesFromStart,
+        locationId: intel.buildingId
+      });
+    }
+  }
+
   const weightOpts: RouteWeightOptions = {
     preferStepFree: preferences.stepFree,
     avoidCrowds: preferences.avoidCrowds,
-    calmRoute: preferences.calmRoute
+    calmRoute: preferences.calmRoute,
+    minimizeElevation: preferences.minimizeElevation,
+    indoorPreferred: preferences.indoorPreferred,
+    outdoorPreferred: preferences.outdoorPreferred,
+    minimizeDistance: preferences.minimizeDistance
   };
   const edgeMinutes = (a: string, b: string) => {
     const candidates = campus.pathEdges.filter((e) => (e.from === a && e.to === b) || (e.from === b && e.to === a));
@@ -783,12 +976,6 @@ export function getGuidanceSteps(
 // as a plain-language label, never a fabricated precise number.
 // ---------------------------------------------------------------------------
 
-export interface ExertionEstimate {
-  label: "Easy" | "Moderate" | "Demanding";
-  tone: "success" | "warning" | "danger";
-  note: string;
-}
-
 export function estimateExertion(campus: Campus, path: string[]): ExertionEstimate | null {
   if (path.length < 2) return { label: "Easy", tone: "success", note: "You're already there." };
 
@@ -830,14 +1017,14 @@ export function estimateExertion(campus: Campus, path: string[]): ExertionEstima
 export function computeRoutePlan(
   campus: Campus,
   target: DestinationTarget,
-  opts: { fromNodeId?: string; preferences?: CampusPreferences; now?: Date; waypointFacilityIds?: string[] } = {}
+  opts: { fromNodeId?: string; preferences?: CampusPreferences; now?: Date; waypointFacilityIds?: string[]; customStopBuildingIds?: string[] } = {}
 ): RoutePlan | null {
   const preferences = opts.preferences ?? DEFAULT_PREFERENCES;
   const intel = getDestinationIntel(campus, target, opts);
   if (!intel) return null;
 
   const fromNodeId = opts.fromNodeId ?? "green";
-  const route = planWeightedPath(campus, fromNodeId, intel.buildingId, preferences, opts.waypointFacilityIds ?? []);
+  const route = planWeightedPath(campus, fromNodeId, intel.buildingId, preferences, opts.waypointFacilityIds ?? [], opts.customStopBuildingIds ?? []);
   const steps = getGuidanceSteps(campus, intel, route.path, { preferences, waypoints: route.waypoints });
   const startNode = campus.pathNodes.find((n) => n.id === fromNodeId);
 
@@ -847,7 +1034,8 @@ export function computeRoutePlan(
     totalMinutes: intel.walkMinutes,
     startLabel: startNode?.label ?? "Your location",
     waypoints: route.waypoints,
-    path: route.path
+    path: route.path,
+    exertion: estimateExertion(campus, route.path)
   };
 }
 
@@ -867,12 +1055,13 @@ function scoreMatch(query: string, ...fields: (string | undefined)[]): number {
   return best;
 }
 
-const FACILITY_SEARCH_AMENITY_TYPES = new Set<string>(["restroom", "accessible-restroom", "service-animal-relief", "lactation-room"]);
+const FACILITY_SEARCH_AMENITY_TYPES = new Set<string>(["restroom", "accessible-restroom", "service-animal-relief", "lactation-room", "quiet-space"]);
 
 const AMENITY_KEYWORDS: { keywords: string[]; type: string }[] = [
   { keywords: ["restroom", "bathroom", "toilet"], type: "restroom" },
   { keywords: ["accessible restroom", "accessible bathroom"], type: "accessible-restroom" },
   { keywords: ["service animal", "pet relief", "dog relief"], type: "service-animal-relief" },
+  { keywords: ["quiet space", "quiet room", "quiet area", "sensory room"], type: "quiet-space" },
   { keywords: ["lactation", "nursing room", "nursing area", "pumping room"], type: "lactation-room" },
   { keywords: ["coffee"], type: "coffee" },
   { keywords: ["elevator"], type: "elevator" },

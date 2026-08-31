@@ -68,6 +68,7 @@ export function usePreferences() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.preferences));
     window.localStorage.setItem(EXPIRY_KEY, JSON.stringify(state.expiry));
     document.documentElement.classList.toggle("large-text", state.preferences.largerText);
+    document.documentElement.classList.toggle("high-contrast", state.preferences.highContrast);
   }, [state]);
 
   useEffect(() => {

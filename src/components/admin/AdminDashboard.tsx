@@ -3,7 +3,7 @@ import { AlertTriangle, BarChart3, Calendar, Construction, ShieldCheck, SquarePa
 import type { UseAnalytics } from "../../hooks/useAnalytics";
 import type { AlertSeverity, Campus, CampusAlert, CampusEvent } from "../../types/campus";
 import { Badge, Button, Card, IconTile, SectionHeading, Toggle, cx } from "../ui/Primitives";
-import { InsightsAdmin } from "./InsightsAdmin";
+import { ExecutiveDashboard } from "./executive/ExecutiveDashboard";
 
 type AdminActions = {
   toggleAlertActive: (id: string, current: boolean) => void;
@@ -20,7 +20,7 @@ type AdminActions = {
 type Section = "insights" | "alerts" | "parking" | "hours" | "construction" | "events";
 
 const SECTIONS: { id: Section; label: string; icon: typeof AlertTriangle }[] = [
-  { id: "insights", label: "Insights", icon: BarChart3 },
+  { id: "insights", label: "Dashboard", icon: BarChart3 },
   { id: "alerts", label: "Alerts", icon: AlertTriangle },
   { id: "parking", label: "Parking", icon: SquareParking },
   { id: "hours", label: "Hours", icon: Calendar },
@@ -77,7 +77,7 @@ export function AdminDashboard({
         })}
       </div>
 
-      {section === "insights" && <InsightsAdmin campus={campus} analytics={analytics} />}
+      {section === "insights" && <ExecutiveDashboard campus={campus} analytics={analytics} />}
       {section === "alerts" && <AlertsAdmin campus={campus} actions={actions} />}
       {section === "parking" && <ParkingAdmin campus={campus} actions={actions} />}
       {section === "hours" && <HoursAdmin campus={campus} actions={actions} />}

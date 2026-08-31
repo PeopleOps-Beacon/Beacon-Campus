@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Accessibility, AlertTriangle, ChevronRight, LifeBuoy, MapPin, MessageSquare, ShieldCheck } from "lucide-react";
+import { AccessibilityIssueReport } from "./accessibility/AccessibilityIssueReport";
+import { useAccessibilityReports } from "../hooks/useAccessibilityReports";
 import { Button, Card, IconTile } from "./ui/Primitives";
 
 interface AssistanceOption {
@@ -52,6 +54,8 @@ export function AssistanceScreen({
   onSearchDestination: () => void;
 }) {
   const [noted, setNoted] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const { submitReport } = useAccessibilityReports();
 
   function handleSelect(option: AssistanceOption) {
     if (option.id === "accessibility") {
@@ -60,6 +64,10 @@ export function AssistanceScreen({
     }
     if (option.id === "lost") {
       onSearchDestination();
+      return;
+    }
+    if (option.id === "report") {
+      setReportOpen(true);
       return;
     }
     setNoted(option.title);
@@ -117,6 +125,13 @@ export function AssistanceScreen({
           Clemson University Police through official university channels.
         </p>
       </Card>
+
+      {reportOpen && (
+        <AccessibilityIssueReport
+          onSubmit={(category, location, description) => submitReport(category, location, description)}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
     </div>
   );
 }

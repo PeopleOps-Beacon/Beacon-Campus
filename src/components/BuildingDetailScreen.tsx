@@ -1,6 +1,7 @@
-import { AlertTriangle, Building2, Construction, DoorOpen, Navigation, ShieldAlert, SquareParking, Users } from "lucide-react";
-import { activeAlertsForBuilding, activeConstructionForBuilding, buildingOpenStatus } from "../lib/campusEngine";
+import { AlertTriangle, Armchair, Building2, Construction, Mail, Navigation, PawPrint, Phone, ShieldAlert, SquareParking, Users } from "lucide-react";
+import { activeAlertsForBuilding, activeConstructionForBuilding, buildingOpenStatus, elevatorsForBuilding, resolveElevatorAvailability } from "../lib/campusEngine";
 import type { Building, Campus } from "../types/campus";
+import { AccessibleEntranceCard, ElevatorStatusCard } from "./accessibility/AccessibilityCards";
 import { BuildingVisual } from "./BuildingVisual";
 import { DataProvenanceBadge, DataProvenanceNote } from "./DataProvenanceBadge";
 import { Badge, Button, Card, IconTile, SectionHeading } from "./ui/Primitives";
@@ -35,6 +36,11 @@ export function BuildingDetailScreen({
   const openStatus = buildingOpenStatus(building, now);
   const alerts = activeAlertsForBuilding(campus, building.id);
   const construction = activeConstructionForBuilding(campus, building.id);
+  const elevators = elevatorsForBuilding(campus, building.id);
+  const elevatorAvailability = elevators.length > 0 ? resolveElevatorAvailability(campus, building.id) : null;
+  const quietSpaces = building.amenities.filter((a) => a.type === "quiet-space");
+  const serviceAnimalRelief = building.amenities.find((a) => a.type === "service-animal-relief");
+  const additionalServices = campus.services.filter((s) => s.buildingId === building.id && !s.departmentId);
 
   return (
     <div className="flex flex-col gap-5">
@@ -126,6 +132,46 @@ export function BuildingDetailScreen({
         </div>
       )}
 
+      {additionalServices.length > 0 && (
+        <div>
+          <SectionHeading title="Additional services here" />
+          <div className="flex flex-col gap-2">
+            {additionalServices.map((service) => (
+              <Card key={service.id} className="flex flex-col gap-2">
+                <p className="text-sm font-semibold text-white">{service.name}</p>
+                <p className="text-xs text-white/60">{service.description}</p>
+                {(service.hoursNote || service.phone || service.email) && (
+                  <div className="flex flex-col gap-1 text-xs text-white/55">
+                    {service.hoursNote && <p>{service.hoursNote}</p>}
+                    {service.phone && (
+                      <p className="flex items-center gap-1.5">
+                        <Phone size={12} className="text-white/35" aria-hidden="true" />
+                        {service.phone}
+                      </p>
+                    )}
+                    {service.email && (
+                      <p className="flex items-center gap-1.5">
+                        <Mail size={12} className="text-white/35" aria-hidden="true" />
+                        {service.email}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {service.accommodations && service.accommodations.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 border-t border-white/[0.06] pt-2">
+                    {service.accommodations.map((a) => (
+                      <Badge key={a} tone="info">
+                        {a}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       {building.rooms.length > 0 && (
         <div>
           <SectionHeading title="Rooms" />
@@ -143,20 +189,65 @@ export function BuildingDetailScreen({
         <SectionHeading title="Entrances" />
         <div className="flex flex-col gap-2">
           {building.entrances.map((entrance) => (
-            <Card key={entrance.id} className="flex items-center gap-3 py-2.5">
-              <IconTile tone={entrance.accessible ? "success" : "neutral"}>
-                <DoorOpen size={16} aria-hidden="true" />
-              </IconTile>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-white">{entrance.label}</p>
-                {entrance.notes && <p className="text-xs text-white/55">{entrance.notes}</p>}
-              </div>
-              {entrance.accessible && <Badge tone="info">Accessible</Badge>}
-              {building.id === "richardson" && entrance.id === "richardson-west" && <Badge tone="danger">Closed</Badge>}
-            </Card>
+            <AccessibleEntranceCard
+              key={entrance.id}
+              entrance={entrance}
+              isRecommended={entrance.id === building.accessibleEntranceId}
+              closed={alerts.some((a) => a.affectedEntranceIds?.includes(entrance.id))}
+              onNavigate={entrance.id === building.accessibleEntranceId ? onNavigate : undefined}
+            />
           ))}
         </div>
       </div>
+
+      {elevators.length > 0 && (
+        <div>
+          <SectionHeading title="Elevators" />
+          <div className="flex flex-col gap-2">
+            {elevators.map((elevator) => (
+              <ElevatorStatusCard
+                key={elevator.id}
+                elevator={elevator}
+                alternate={
+                  elevator.status === "outage" && elevatorAvailability?.reroutedFrom?.id === elevator.id
+                    ? elevatorAvailability.elevator
+                    : undefined
+                }
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(quietSpaces.length > 0 || serviceAnimalRelief) && (
+        <div>
+          <SectionHeading title="Quiet spaces & service animal relief" />
+          <div className="flex flex-col gap-2">
+            {quietSpaces.map((space) => (
+              <Card key={space.id} className="flex items-center gap-3 py-2.5">
+                <IconTile tone="info">
+                  <Armchair size={15} aria-hidden="true" />
+                </IconTile>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-white">Quiet space</p>
+                  <p className="truncate text-xs text-white/55">{space.label}</p>
+                </div>
+              </Card>
+            ))}
+            {serviceAnimalRelief && (
+              <Card className="flex items-center gap-3 py-2.5">
+                <IconTile tone="info">
+                  <PawPrint size={15} aria-hidden="true" />
+                </IconTile>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-white">Service animal relief area</p>
+                  <p className="truncate text-xs text-white/55">{serviceAnimalRelief.label}</p>
+                </div>
+              </Card>
+            )}
+          </div>
+        </div>
+      )}
 
       {building.amenities.length > 0 && (
         <div>

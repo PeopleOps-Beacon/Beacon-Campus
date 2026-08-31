@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, Circle, Compass, DoorOpen, Heart, MapPin, MapPinned, MapPinPlus } from "lucide-react";
+import { AlertTriangle, Armchair, CheckCircle2, Circle, Compass, DoorOpen, Heart, HeartPulse, MapPin, MapPinned, MapPinPlus } from "lucide-react";
 import { pulse } from "../lib/haptics";
 import { speak } from "../lib/speech";
 import type { Campus, CampusPreferences, GuidanceStep, RouteMode, RoutePlan, StepCategory } from "../types/campus";
@@ -8,6 +8,8 @@ import { AddStopSheet } from "./AddStopSheet";
 import { AssistanceQuickAction } from "./AssistanceScreen";
 import { CampusMap } from "./CampusMap";
 import { LocationIllustration } from "./LocationIllustration";
+import { RecoveryMode } from "./accessibility/RecoveryMode";
+import { RestResumeSheet } from "./accessibility/RestResumeSheet";
 import { Button, Card, cx } from "./ui/Primitives";
 import { RouteAlert } from "./ui/RouteAlert";
 
@@ -185,7 +187,8 @@ function RouteView({
   current,
   remainingMinutes,
   remainingFeet,
-  routeMode
+  routeMode,
+  exertion
 }: {
   campus: Campus;
   plan: RoutePlan;
@@ -194,6 +197,7 @@ function RouteView({
   remainingMinutes: number;
   remainingFeet: number;
   routeMode?: RouteMode;
+  exertion?: RoutePlan["exertion"];
 }) {
   return (
     <div className="animate-screen-in flex flex-col gap-3">
@@ -219,6 +223,14 @@ function RouteView({
             <p className="text-base font-bold text-white">{formatFeet(remainingFeet)}</p>
           </div>
         </div>
+        {exertion && (
+          <p className="text-xs text-white/55">
+            <span className={cx("font-semibold", exertion.tone === "success" ? "text-campus-green" : exertion.tone === "warning" ? "text-campus-amber" : "text-red-300")}>
+              {exertion.label} walk
+            </span>{" "}
+            — {exertion.note}
+          </p>
+        )}
 
         {plan.waypoints.length > 0 && (
           <div className="flex flex-col gap-2 border-t border-white/[0.06] pt-3">
@@ -331,6 +343,8 @@ export function NavigationScreen({
   const [addStopOpen, setAddStopOpen] = useState(false);
   const [mode, setMode] = useState<NavMode>("guidance");
   const [justAddedStop, setJustAddedStop] = useState(false);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [restResumeOpen, setRestResumeOpen] = useState(false);
 
   const steps = plan.steps.filter((s) => s.category !== "arrival");
   const current = steps[stepIndex];
@@ -367,7 +381,7 @@ export function NavigationScreen({
   }
 
   return (
-    <div className="flex h-full flex-col gap-3">
+    <div className="relative flex h-full flex-col gap-3">
       <NavModeSwitch mode={mode} onChange={setMode} />
 
       <DestinationStatus plan={plan} nextStopLabel={nextStopLabel} remainingMinutes={remainingMinutes} />
@@ -408,6 +422,7 @@ export function NavigationScreen({
               remainingMinutes={remainingMinutes}
               remainingFeet={remainingFeet}
               routeMode={routeMode}
+              exertion={plan.exertion}
             />
           )}
         </div>
@@ -420,11 +435,19 @@ export function NavigationScreen({
         Step {stepIndex + 1} of {steps.length}
       </div>
 
-      <div className="flex shrink-0 gap-2">
+      <div className="grid shrink-0 grid-cols-2 gap-2">
         <AssistanceQuickAction onClick={onRequestAssistance} />
         <Button tone="ghost" className="w-full justify-center text-white/60" onClick={() => setAddStopOpen(true)}>
           <MapPinPlus size={15} aria-hidden="true" />
           Add stop
+        </Button>
+        <Button tone="ghost" className="w-full justify-center text-white/60" onClick={() => setRestResumeOpen(true)}>
+          <Armchair size={15} aria-hidden="true" />
+          Need a break?
+        </Button>
+        <Button tone="ghost" className="w-full justify-center text-white/60" onClick={() => setRecoveryOpen(true)}>
+          <HeartPulse size={15} aria-hidden="true" />
+          Recovery Mode
         </Button>
       </div>
 
@@ -447,6 +470,41 @@ export function NavigationScreen({
           preferences={effectivePreferences}
           onAdd={handleAddStop}
           onClose={() => setAddStopOpen(false)}
+        />
+      )}
+
+      {restResumeOpen && (
+        <RestResumeSheet
+          campus={campus}
+          fromNodeId={current?.locationId ?? plan.path[0]}
+          destinationBuildingId={plan.destination.buildingId}
+          preferences={effectivePreferences}
+          onFindFacility={(facilityId) => {
+            handleAddStop(facilityId);
+            setRestResumeOpen(false);
+          }}
+          onClose={() => setRestResumeOpen(false)}
+        />
+      )}
+
+      {recoveryOpen && current && (
+        <RecoveryMode
+          destinationTitle={plan.destination.title}
+          currentLocationLabel={locationLabel(campus, current.locationId)}
+          nextInstruction={current.instruction}
+          onContinue={() => setRecoveryOpen(false)}
+          onFindQuietSpace={() => {
+            setRecoveryOpen(false);
+            setRestResumeOpen(true);
+          }}
+          onSitDown={() => {
+            setRecoveryOpen(false);
+            setRestResumeOpen(true);
+          }}
+          onAskForHelp={() => {
+            setRecoveryOpen(false);
+            onRequestAssistance();
+          }}
         />
       )}
     </div>
